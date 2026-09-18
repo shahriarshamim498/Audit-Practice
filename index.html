@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Transaction Audit & Risk Analytics Dashboard</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              900: '#134e4a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #090d16;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* Light Mode Design System */
+    html.light body, html:not(.dark) body {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    html.light header, html:not(.dark) header {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      border-bottom-color: #e2e8f0 !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+    html.light #tabNav, html:not(.dark) #tabNav {
+      border-top-color: #e2e8f0 !important;
+    }
+    html.light .bg-slate-900, html:not(.dark) .bg-slate-900 {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    }
+    html.light .bg-slate-950, html:not(.dark) .bg-slate-950 {
+      background-color: #f8fafc !important;
+    }
+    html.light .bg-slate-950\/60, html:not(.dark) .bg-slate-950\/60 {
+      background-color: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+    }
+    html.light .bg-slate-800, html:not(.dark) .bg-slate-800 {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html.light .bg-slate-800\/40, html:not(.dark) .bg-slate-800\/40,
+    html.light .bg-slate-800\/50, html:not(.dark) .bg-slate-800\/50,
+    html.light .bg-slate-800\/60, html:not(.dark) .bg-slate-800\/60 {
+      background-color: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html.light .border-slate-800, html:not(.dark) .border-slate-800,
+    html.light .border-slate-700, html:not(.dark) .border-slate-700,
+    html.light .border-slate-800\/60, html:not(.dark) .border-slate-800\/60,
+    html.light .border-slate-700\/80, html:not(.dark) .border-slate-700\/80,
+    html.light .border-slate-700\/60, html:not(.dark) .border-slate-700\/60 {
+      border-color: #e2e8f0 !important;
+    }
+    html.light .text-white, html:not(.dark) .text-white {
+      color: #0f172a !important;
+    }
+    html.light .text-slate-100, html:not(.dark) .text-slate-100,
+    html.light .text-slate-200, html:not(.dark) .text-slate-200 {
+      color: #1e293b !important;
+    }
+    html.light .text-slate-300, html:not(.dark) .text-slate-300 {
+      color: #334155 !important;
+    }
+    html.light .text-slate-400, html:not(.dark) .text-slate-400 {
+      color: #64748b !important;
+    }
+    html.light input, html.light select,
+    html:not(.dark) input, html:not(.dark) select {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    html.light input::placeholder, html:not(.dark) input::placeholder {
+      color: #94a3b8 !important;
+    }
+    html.light select option, html:not(.dark) select option {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+    }
+    html.light .tab-btn.active, html:not(.dark) .tab-btn.active {
+      background-color: #ffffff !important;
+      color: #0d9488 !important;
+      border-color: #14b8a6 !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    html.light .tab-btn:not(.active), html:not(.dark) .tab-btn:not(.active) {
+      color: #64748b !important;
+    }
+    html.light .tab-btn:not(.active):hover, html:not(.dark) .tab-btn:not(.active):hover {
+      color: #0f172a !important;
+      background-color: #f1f5f9 !important;
+    }
+    html.light tr:hover, html:not(.dark) tr:hover {
+      background-color: #f1f5f9 !important;
+    }
+    html.light thead, html:not(.dark) thead {
+      background-color: #f8fafc !important;
+      color: #475569 !important;
+    }
+    html.light .bg-rose-950\/20, html:not(.dark) .bg-rose-950\/20 {
+      background-color: #fff1f2 !important;
+      border-color: #fecdd3 !important;
+    }
+    html.light .bg-amber-950\/20, html:not(.dark) .bg-amber-950\/20 {
+      background-color: #fffbeb !important;
+      border-color: #fde68a !important;
+    }
+    html.light .bg-purple-950\/20, html:not(.dark) .bg-purple-950\/20 {
+      background-color: #faf5ff !important;
+      border-color: #e9d5ff !important;
+    }
+    html.light .bg-cyan-950\/20, html:not(.dark) .bg-cyan-950\/20 {
+      background-color: #ecfeff !important;
+      border-color: #a5f3fc !important;
+    }
+    html.light .bg-teal-950\/40, html:not(.dark) .bg-teal-950\/40 {
+      background-color: #f0fdfa !important;
+      border-color: #99f6e4 !important;
+    }
+    html.light .bg-slate-900\/95, html:not(.dark) .bg-slate-900\/95 {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+    }
+    html.light #merchantDrawer > div, html:not(.dark) #merchantDrawer > div {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: -4px 0 25px rgba(0, 0, 0, 0.12);
+    }
+    html.light #exportModal > div, html:not(.dark) #exportModal > div {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+    html.light ::-webkit-scrollbar-track, html:not(.dark) ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    html.light ::-webkit-scrollbar-thumb, html:not(.dark) ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+    }
+    html.light ::-webkit-scrollbar-thumb:hover, html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-teal-500 selection:text-white">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 bg-gradient-to-tr from-teal-500 to-cyan-500 rounded-lg shadow-lg shadow-teal-500/20 text-slate-950">
+            <i data-lucide="shield-alert" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-lg font-bold tracking-tight text-white">Client Transaction Audit</h1>
+              <span class="px-2 py-0.5 text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-full">
+                Audit Practice 2026
+              </span>
+            </div>
+            <p class="text-xs text-slate-400">Trends, Anomaly Screener, AML Indicators & Dormancy Analytics</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <!-- Global MAO Filter -->
+          <div class="flex items-center space-x-1.5 bg-slate-800 border border-slate-700/80 px-2.5 py-1.5 rounded-lg shadow-inner">
+            <i data-lucide="user-check" class="w-3.5 h-3.5 text-teal-400"></i>
+            <label for="globalMAOSelect" class="text-xs text-slate-300 font-medium hidden sm:inline">MAO:</label>
+            <select
+              id="globalMAOSelect"
+              class="bg-transparent text-xs text-teal-300 font-semibold focus:outline-none cursor-pointer"
+            >
+              <option value="ALL" class="bg-slate-900 text-white">All Officers (All Clients)</option>
+            </select>
+          </div>
+
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input
+              type="text"
+              id="globalSearchInput"
+              placeholder="Search merchant, wallet..."
+              class="w-40 md:w-56 pl-9 pr-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+            />
+          </div>
+          <button
+            id="openExportBtn"
+            class="flex items-center space-x-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-medium transition-colors shadow-sm shadow-teal-600/30"
+          >
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Export Workpaper</span>
+          </button>
+          <!-- Theme Toggle -->
+          <button
+            id="themeToggleBtn"
+            title="Toggle Light / Dark Mode"
+            class="flex items-center justify-center p-2 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm"
+          >
+            <i data-lucide="sun" id="themeSunIcon" class="w-4 h-4 text-amber-400"></i>
+            <i data-lucide="moon" id="themeMoonIcon" class="w-4 h-4 text-slate-600 hidden"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <nav class="flex space-x-1 overflow-x-auto py-2 border-t border-slate-800/60" id="tabNav">
+        <button data-tab="overview" class="tab-btn flex items-center space-x-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all text-teal-400 bg-slate-800 border border-teal-500/30">
+          <i data-lucide="layers" class="w-4 h-4"></i>
+          <span>Overview</span>
+        </button>
+        <button data-tab="trends" class="tab-btn flex items-center space-x-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>
+          <span>Trends & Macro</span>
+        </button>
+        <button data-tab="anomalies" class="tab-btn flex items-center space-x-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          <span>Anomaly Radar</span>
+          <span id="badgeSpikes" class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500 text-white">57</span>
+        </button>
+        <button data-tab="suspicious" class="tab-btn flex items-center space-x-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+          <i data-lucide="shield-alert" class="w-4 h-4"></i>
+          <span>AML / Suspicious</span>
+          <span id="badgeAML" class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-rose-500 text-white">22</span>
+        </button>
+        <button data-tab="dormancy" class="tab-btn flex items-center space-x-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+          <span>Dormancy Matrix</span>
+          <span id="badgeDormant" class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500 text-white">29</span>
+        </button>
+        <button data-tab="explorer" class="tab-btn flex items-center space-x-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+          <i data-lucide="activity" class="w-4 h-4"></i>
+          <span>Merchant 360</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    
+    <!-- KPI SUMMARY CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="kpiContainer">
+      <!-- Injected by JS -->
+    </div>
+
+    <!-- TAB CONTENT SECTIONS -->
+    <section id="tab-overview" class="tab-panel space-y-6">
+      <!-- Overview Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-sm font-bold text-white tracking-tight">Portfolio Monthly Turnover Trajectory</h2>
+              <p className="text-xs text-slate-400 text-slate-400">Total Payment Amount (PA) in BDT from Jan '26 to Aug '26</p>
+            </div>
+            <span class="text-xs text-teal-400 font-semibold cursor-pointer hover:underline" onclick="switchTab('trends')">Trends Studio &rarr;</span>
+          </div>
+          <div class="h-72 w-full">
+            <canvas id="overviewTurnoverChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm flex flex-col">
+          <h2 class="text-sm font-bold text-white tracking-tight mb-1">Client Activity Status</h2>
+          <p class="text-xs text-slate-400 mb-2">Portfolio health breakdown</p>
+          <div class="h-52 w-full flex items-center justify-center">
+            <canvas id="overviewStatusChart"></canvas>
+          </div>
+          <div class="space-y-2 pt-3 border-t border-slate-800 text-xs mt-auto">
+            <div class="flex items-center justify-between text-slate-300">
+              <span class="flex items-center space-x-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>Active</span></span>
+              <span class="font-bold text-white" id="statActiveCount">589</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-300">
+              <span class="flex items-center space-x-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span>Amber (Low Activity)</span></span>
+              <span class="font-bold text-white" id="statAmberCount">92</span>
+            </div>
+            <div class="flex items-center justify-between text-slate-300">
+              <span class="flex items-center space-x-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span>Zero Transacting</span></span>
+              <span class="font-bold text-white" id="statDormantCount">280</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Priority Cases & Sub-Pillar Distribution -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-rose-400"></i>
+              <h2 class="text-sm font-bold text-white tracking-tight">Highest Priority Audit Cases</h2>
+            </div>
+            <span class="text-xs text-teal-400 font-semibold cursor-pointer hover:underline" onclick="switchTab('suspicious')">View All &rarr;</span>
+          </div>
+          <div class="space-y-2.5" id="overviewPriorityCases">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-bold text-white tracking-tight">Turnover by Sub Pillar (August '26)</h2>
+            <span class="text-xs text-slate-400">Volume share</span>
+          </div>
+          <div class="space-y-3.5" id="overviewPillars">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRENDS TAB -->
+    <section id="tab-trends" class="tab-panel hidden space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-sm font-bold text-white tracking-tight">8-Month Macro Growth Trend (Jan '26 - Aug '26)</h2>
+            <p class="text-xs text-slate-400">Time-series progression across the entire client portfolio</p>
+          </div>
+          <div class="inline-flex p-1 bg-slate-800 rounded-lg border border-slate-700 space-x-1">
+            <button id="btnTrendPA" class="px-3 py-1.5 rounded-md text-xs font-medium bg-teal-600 text-white" onclick="changeTrendMetric('pa')">Turnover (PA)</button>
+            <button id="btnTrendPC" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-white" onclick="changeTrendMetric('pc')">Transactions (PC)</button>
+            <button id="btnTrendTS" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-white" onclick="changeTrendMetric('ts')">Avg Ticket Size</button>
+          </div>
+        </div>
+        <div class="h-80 w-full">
+          <canvas id="macroTrendChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <h2 class="text-sm font-bold text-white mb-1">Top Districts by Turnover (August '26)</h2>
+          <p class="text-xs text-slate-400 mb-4">Volume concentration and client density</p>
+          <div class="h-64 w-full">
+            <canvas id="districtTrendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+          <h2 class="text-sm font-bold text-white mb-1">Acquisition Officer (MAO) Performance</h2>
+          <p class="text-xs text-slate-400 mb-4">Client portfolio turnover and active account retention</p>
+          <div class="space-y-3 max-h-64 overflow-y-auto pr-1" id="maoTrendList">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANOMALY RADAR TAB -->
+    <section id="tab-anomalies" class="tab-panel hidden space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="anomalyPills">
+        <!-- Injected by JS -->
+      </div>
+
+      <!-- Spotlight Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-slate-800/80 to-slate-900 border border-slate-700/60 rounded-xl p-5 shadow-lg">
+        <div class="flex items-center space-x-2 mb-3">
+          <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider">Audit Spotlight: Significant Anomaly Cases</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-lg cursor-pointer hover:border-cyan-500" onclick="inspectWallet('1335101883')">
+            <div class="flex justify-between items-start mb-1">
+              <span class="font-bold text-cyan-400 text-sm">Ambala Commerce (1335101883)</span>
+              <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded font-semibold text-[10px]">Mega Outlier</span>
+            </div>
+            <p class="text-slate-300 mt-1">
+              Turnover exploded from BDT 1.5M (March) to <strong class="text-white">BDT 262.8 Million</strong> in August across 61,764 transactions. Generates over 80% of the entire portfolio's August turnover.
+            </p>
+          </div>
+          <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-lg cursor-pointer hover:border-amber-500" onclick="inspectWallet('1849911555')">
+            <div class="flex justify-between items-start mb-1">
+              <span class="font-bold text-amber-400 text-sm">Sroddhaa (1849911555)</span>
+              <span class="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded font-semibold text-[10px]">+351,482% Surge</span>
+            </div>
+            <p class="text-slate-300 mt-1">
+              Account transacted only 1 payment of BDT 95 in July, and suddenly exploded to <strong class="text-white">BDT 334,003</strong> across 167 transactions in August. Immediate review required.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anomaly Table -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+          <h2 class="text-sm font-bold text-white">Anomalous Client Accounts</h2>
+          <span class="text-xs text-slate-400" id="anomalyCountLabel">Showing all anomalies</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
+                <th class="p-3">Wallet & Merchant</th>
+                <th class="p-3">Sub Pillar</th>
+                <th class="p-3">District</th>
+                <th class="p-3 text-right">July PA</th>
+                <th class="p-3 text-right">August PA</th>
+                <th class="p-3 text-right">MoM Growth</th>
+                <th class="p-3 text-center">Anomaly Flag</th>
+                <th class="p-3 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="anomalyTableBody" class="divide-y divide-slate-800/60">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUSPICIOUS AML TAB -->
+    <section id="tab-suspicious" class="tab-panel hidden space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="suspiciousPills">
+        <!-- Injected by JS -->
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="shield-alert" class="w-4 h-4 text-rose-500"></i>
+            <h2 class="text-sm font-bold text-white">Suspicious Transaction Screener (AML / Fraud / Churn)</h2>
+          </div>
+          <span class="text-xs text-slate-400" id="suspiciousCountLabel">Flagged accounts</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
+                <th class="p-3">Client Account</th>
+                <th class="p-3">Pillar & Officer</th>
+                <th class="p-3 text-right">Aug Volume (PA)</th>
+                <th class="p-3 text-center">Txn / Cust (PC : CC)</th>
+                <th class="p-3 text-center">Risk Score</th>
+                <th class="p-3">Audit Red Flag Trigger</th>
+                <th class="p-3 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="suspiciousTableBody" class="divide-y divide-slate-800/60">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- DORMANCY TAB -->
+    <section id="tab-dormancy" class="tab-panel hidden space-y-6">
+      <!-- Notice Banner for Tenure-Adjusted Model -->
+      <div class="p-4 bg-teal-950/30 border border-teal-500/40 rounded-xl flex items-start space-x-3 text-xs">
+        <i data-lucide="shield-check" class="w-5 h-5 text-teal-400 shrink-0 mt-0.5"></i>
+        <div>
+          <span class="font-bold text-teal-300">Tenure-Adjusted Dormancy Audit Applied:</span>
+          <span class="text-slate-300 ml-1">
+            Dormancy is calculated strictly starting from each client's <strong>bKash Registration / Onboarding Month</strong> forward. Months prior to registration are classified as <em>Pre-Onboarding</em> (non-existent) rather than dormant accounts.
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="dormancyPills">
+        <!-- Injected by JS -->
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-1">
+          <h2 class="text-sm font-bold text-white tracking-tight">Post-Onboarding Dormancy Histogram (Jan - Aug '26)</h2>
+          <span class="text-xs text-teal-400 font-semibold">Evaluated from Registration Date</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Number of client accounts by cumulative dormant months since onboarding</p>
+        <div class="h-64 w-full">
+          <canvas id="dormancyHistogramChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+            <h2 class="text-sm font-bold text-white">Tenure-Adjusted Dormancy & Reactivation Review Queue</h2>
+          </div>
+          <span class="text-xs text-slate-400" id="dormancyQueueLabel">Review Queue</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider">
+                <th class="p-3">Merchant Name</th>
+                <th class="p-3">Wallet No</th>
+                <th class="p-3">Officer</th>
+                <th class="p-3 text-center">Registration Date</th>
+                <th class="p-3 text-center">Tenure</th>
+                <th class="p-3 text-center">Dormancy</th>
+                <th class="p-3 text-center">Aug Status</th>
+                <th class="p-3 text-right">August PA</th>
+                <th class="p-3">Audit Flag</th>
+                <th class="p-3 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="dormancyTableBody" class="divide-y divide-slate-800/60">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MERCHANT 360 EXPLORER TAB -->
+    <section id="tab-explorer" class="tab-panel hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="filterPillar" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200">
+              <option value="ALL">All Pillars</option>
+            </select>
+            <select id="filterFlag" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200">
+              <option value="ALL">All Audit Flags</option>
+            </select>
+            <select id="filterStatus" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200">
+              <option value="ALL">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Amber">Amber</option>
+              <option value="Zero Transacting">Zero Transacting</option>
+            </select>
+            <button id="btnResetFilters" class="px-2.5 py-1 text-xs text-rose-400 hover:underline">Reset</button>
+          </div>
+          <span class="text-xs text-slate-400" id="explorerCountLabel">Showing 961 merchants</span>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border border-slate-800">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider select-none">
+                <th class="p-3 cursor-pointer" onclick="sortTable('merchantName')">Merchant & Wallet &#x21C5;</th>
+                <th class="p-3 cursor-pointer" onclick="sortTable('subPillar')">Pillar / Officer &#x21C5;</th>
+                <th class="p-3 text-right cursor-pointer" onclick="sortTable('augPA')">Aug PA (BDT) &#x21C5;</th>
+                <th class="p-3 text-right cursor-pointer" onclick="sortTable('augPC')">Aug PC &#x21C5;</th>
+                <th class="p-3 text-right cursor-pointer" onclick="sortTable('avgTicketSize')">Avg Ticket &#x21C5;</th>
+                <th class="p-3 text-right cursor-pointer" onclick="sortTable('growth')">Growth &#x21C5;</th>
+                <th class="p-3 text-center cursor-pointer" onclick="sortTable('dormantMonths')">Dormancy &#x21C5;</th>
+                <th class="p-3 text-center cursor-pointer" onclick="sortTable('riskScore')">Risk Score &#x21C5;</th>
+                <th class="p-3">Audit Flag</th>
+                <th class="p-3 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="explorerTableBody" class="divide-y divide-slate-800/60">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between pt-2 text-xs text-slate-400">
+          <button id="btnPrevPage" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg text-white">Previous</button>
+          <span id="pageInfoLabel">Page 1 of 39</span>
+          <button id="btnNextPage" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 rounded-lg text-white">Next</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MERCHANT 360 DRAWER (SLIDE-OVER) -->
+  <div id="merchantDrawer" class="fixed inset-0 z-50 overflow-hidden bg-slate-950/70 backdrop-blur-sm hidden flex justify-end">
+    <div class="w-full max-w-xl bg-slate-900 border-l border-slate-800 h-full shadow-2xl overflow-y-auto flex flex-col">
+      <div class="p-6 border-b border-slate-800 sticky top-0 bg-slate-900/95 backdrop-blur z-10 flex items-start justify-between">
+        <div class="space-y-1">
+          <div class="flex items-center space-x-2" id="drawerBadges"></div>
+          <h2 class="text-lg font-bold text-white tracking-tight" id="drawerTitle">Merchant Name</h2>
+          <p class="text-xs text-slate-400" id="drawerSubTitle">Category • Pillar</p>
+        </div>
+        <button id="closeDrawerBtn" class="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-6 flex-1">
+        <!-- Quick Metrics -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="drawerQuickMetrics"></div>
+
+        <!-- 8-Month Chart -->
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+          <h3 class="text-xs font-bold text-white mb-1">Monthly Transaction History (Jan - Aug '26)</h3>
+          <p class="text-[11px] text-slate-400 mb-3">Payment Amount progression in BDT</p>
+          <div class="h-48 w-full">
+            <canvas id="drawerMonthlyChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Triggered Flags -->
+        <div class="space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Triggered Risk & Audit Indicators</h3>
+          <div class="space-y-2" id="drawerFlagsContainer"></div>
+        </div>
+
+        <!-- Demographics -->
+        <div class="space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Account Information</h3>
+          <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-4 space-y-2.5 text-xs" id="drawerDemographics"></div>
+        </div>
+
+        <!-- Audit Checklist -->
+        <div class="p-4 bg-teal-950/20 border border-teal-500/30 rounded-xl space-y-2">
+          <h4 class="text-xs font-bold text-teal-400 flex items-center space-x-1.5">
+            <i data-lucide="check-square" class="w-4 h-4"></i>
+            <span>Recommended Auditor Action Checklist</span>
+          </h4>
+          <ul class="text-[11px] text-slate-300 space-y-1.5 list-disc pl-4">
+            <li>Review bank reconciliation and merchant settlement statements for August.</li>
+            <li>Inspect transaction logs to verify diverse paying customer identities.</li>
+            <li>Confirm valid physical / e-commerce business operations at registered address.</li>
+            <li>Verify commission contract rate tier application.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-900 sticky bottom-0 flex justify-end space-x-2">
+        <button id="closeDrawerBtn2" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT MODAL -->
+  <div id="exportModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 space-y-5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="file-spreadsheet" class="w-5 h-5 text-teal-400"></i>
+          <h3 class="text-base font-bold text-white">Export Audit Workpapers</h3>
+        </div>
+        <button id="closeExportBtn" class="p-1.5 text-slate-400 hover:text-white bg-slate-800 rounded-lg">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-400">Export standardized CSV workpapers ready for internal review, regulatory audit, or Excel pivot analysis.</p>
+
+      <div class="space-y-3">
+        <div onclick="exportData('flagged')" class="p-3.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-rose-500/50 rounded-xl cursor-pointer flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 bg-rose-500/10 text-rose-400 rounded-lg"><i data-lucide="shield-alert" class="w-4 h-4"></i></div>
+            <div>
+              <div class="text-xs font-bold text-white">Flagged & Suspicious Accounts</div>
+              <div class="text-[11px] text-slate-400">High-risk, burst reactivations, single-customer</div>
+            </div>
+          </div>
+          <i data-lucide="download" class="w-4 h-4 text-slate-400"></i>
+        </div>
+
+        <div onclick="exportData('dormant')" class="p-3.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-500/50 rounded-xl cursor-pointer flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg"><i data-lucide="clock" class="w-4 h-4"></i></div>
+            <div>
+              <div class="text-xs font-bold text-white">High Dormancy & Review Queue</div>
+              <div class="text-[11px] text-slate-400">All accounts dormant &ge;4 months or flagged</div>
+            </div>
+          </div>
+          <i data-lucide="download" class="w-4 h-4 text-slate-400"></i>
+        </div>
+
+        <div onclick="exportData('all')" class="p-3.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-teal-500/50 rounded-xl cursor-pointer flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 bg-teal-500/10 text-teal-400 rounded-lg"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i></div>
+            <div>
+              <div class="text-xs font-bold text-white">Complete Master Dataset (961 Clients)</div>
+              <div class="text-[11px] text-slate-400">Includes all calculated scores and audit flags</div>
+            </div>
+          </div>
+          <i data-lucide="download" class="w-4 h-4 text-slate-400"></i>
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button id="closeExportBtn2" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Data and Application Logic -->
+  <script src="./data.js"></script>
+  <script src="./dashboard.js"></script>
+</body>
+</html>
