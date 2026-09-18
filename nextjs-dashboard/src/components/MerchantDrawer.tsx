@@ -22,12 +22,16 @@ export const MerchantDrawer: React.FC<MerchantDrawerProps> = ({ merchant, onClos
   }));
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/70 backdrop-blur-sm flex justify-end transition-opacity">
-      <div className="w-full max-w-xl bg-slate-900 border-l border-slate-800 h-full shadow-2xl overflow-y-auto flex flex-col">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-stretch sm:justify-end transition-opacity">
+      <div className="fixed inset-0" onClick={onClose} />
+      <div className="relative w-full sm:max-w-xl bg-slate-900 border-t sm:border-t-0 sm:border-l border-slate-800 rounded-t-3xl sm:rounded-none max-h-[90vh] sm:max-h-full h-full shadow-2xl overflow-y-auto flex flex-col z-10">
+        {/* Mobile Drag Handle */}
+        <div className="w-12 h-1 bg-slate-700 rounded-full mx-auto my-2.5 sm:hidden shrink-0" />
+
         {/* Drawer Header */}
-        <div className="p-6 border-b border-slate-800 sticky top-0 bg-slate-900/95 backdrop-blur z-10 flex items-start justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
+        <div className="px-5 py-4 sm:p-6 border-b border-slate-800 sticky top-0 bg-slate-900/95 backdrop-blur z-10 flex items-start justify-between">
+          <div className="space-y-1 pr-3">
+            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
                 Wallet: {merchant.walletNo}
               </span>

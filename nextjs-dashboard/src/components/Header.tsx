@@ -113,8 +113,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex space-x-1 overflow-x-auto py-2 scrollbar-none border-t border-slate-800/60">
+        {/* Tab Navigation (Desktop / Tablet) */}
+        <div className="hidden sm:flex space-x-1 overflow-x-auto py-1.5 scrollbar-none border-t border-slate-800/60">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = currentTab === tab.id;

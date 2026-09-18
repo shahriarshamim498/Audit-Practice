@@ -13,7 +13,7 @@ import { DormancyTab } from '../components/DormancyTab';
 import { MerchantTable } from '../components/MerchantTable';
 import { MerchantDrawer } from '../components/MerchantDrawer';
 import { ExportModal } from '../components/ExportModal';
-import { ShieldAlert, Loader2 } from 'lucide-react';
+import { ShieldAlert, Loader2, Layers, TrendingUp, AlertTriangle, Clock, Activity } from 'lucide-react';
 
 export default function DashboardPage() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -158,6 +158,54 @@ export default function DashboardPage() {
           />
         )}
       </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 dark:bg-slate-900/95 light:bg-white/95 backdrop-blur-md border-t border-slate-800 pb-safe px-2 py-1 flex justify-around items-center transition-colors shadow-lg">
+        <button
+          onClick={() => setCurrentTab('overview')}
+          className={`flex flex-col items-center py-1 px-2 ${currentTab === 'overview' ? 'text-teal-400' : 'text-slate-400'}`}
+        >
+          <Layers className="w-5 h-5" />
+          <span className="text-[10px] font-medium mt-0.5">Overview</span>
+        </button>
+        <button
+          onClick={() => setCurrentTab('trends')}
+          className={`flex flex-col items-center py-1 px-2 ${currentTab === 'trends' ? 'text-teal-400' : 'text-slate-400'}`}
+        >
+          <TrendingUp className="w-5 h-5" />
+          <span className="text-[10px] font-medium mt-0.5">Trends</span>
+        </button>
+        <button
+          onClick={() => setCurrentTab('anomalies')}
+          className={`flex flex-col items-center py-1 px-2 relative ${currentTab === 'anomalies' ? 'text-teal-400' : 'text-slate-400'}`}
+        >
+          <AlertTriangle className="w-5 h-5" />
+          <span className="text-[10px] font-medium mt-0.5">Radar</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute top-1 right-2" />
+        </button>
+        <button
+          onClick={() => setCurrentTab('suspicious')}
+          className={`flex flex-col items-center py-1 px-2 relative ${currentTab === 'suspicious' ? 'text-teal-400' : 'text-slate-400'}`}
+        >
+          <ShieldAlert className="w-5 h-5" />
+          <span className="text-[10px] font-medium mt-0.5">AML</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 absolute top-1 right-2" />
+        </button>
+        <button
+          onClick={() => setCurrentTab('dormancy')}
+          className={`flex flex-col items-center py-1 px-2 ${currentTab === 'dormancy' ? 'text-teal-400' : 'text-slate-400'}`}
+        >
+          <Clock className="w-5 h-5" />
+          <span className="text-[10px] font-medium mt-0.5">Dormant</span>
+        </button>
+        <button
+          onClick={() => setCurrentTab('explorer')}
+          className={`flex flex-col items-center py-1 px-2 ${currentTab === 'explorer' ? 'text-teal-400' : 'text-slate-400'}`}
+        >
+          <Activity className="w-5 h-5" />
+          <span className="text-[10px] font-medium mt-0.5">360</span>
+        </button>
+      </nav>
 
       {/* Client 360 Drawer */}
       <MerchantDrawer

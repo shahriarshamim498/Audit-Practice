@@ -166,11 +166,23 @@ function switchTab(tabId) {
   const target = document.getElementById(`tab-${tabId}`);
   if (target) target.classList.remove('hidden');
 
+  // Desktop tab navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.getAttribute('data-tab') === tabId) {
-      btn.className = 'tab-btn active flex items-center space-x-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all text-teal-400 bg-slate-800 border border-teal-500/30';
+      btn.className = 'tab-btn active flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium nav-transition text-teal-400 bg-slate-800 surface-card border border-teal-500/30';
     } else {
-      btn.className = 'tab-btn flex items-center space-x-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800/50';
+      btn.className = 'tab-btn flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium nav-transition text-slate-400 text-secondary hover:text-white hover:bg-slate-800/50';
+    }
+  });
+
+  // Mobile bottom dock navigation
+  document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+    if (btn.getAttribute('data-tab') === tabId) {
+      btn.classList.add('active', 'text-teal-400');
+      btn.classList.remove('text-slate-400', 'text-secondary');
+    } else {
+      btn.classList.remove('active', 'text-teal-400');
+      btn.classList.add('text-slate-400', 'text-secondary');
     }
   });
 
@@ -178,7 +190,10 @@ function switchTab(tabId) {
   if (tabId === 'dormancy') renderDormancyView();
   if (tabId === 'overview') renderOverviewCharts();
   if (window.lucide) window.lucide.createIcons();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 function renderKPICards() {
   const list = getActiveMerchants();
   let totalPA = 0, augPA = 0, totalPC = 0, augPC = 0;
@@ -200,69 +215,79 @@ function renderKPICards() {
   }
 
   const avgTicket = augPC > 0 ? augPA / augPC : 0;
-  document.getElementById('statActiveCount').innerText = active;
-  document.getElementById('statAmberCount').innerText = amber;
-  document.getElementById('statDormantCount').innerText = dormant;
-  document.getElementById('badgeSpikes').innerText = spikes;
-  document.getElementById('badgeAML').innerText = bursts + singleCust;
+  const activeElem = document.getElementById('statActiveCount');
+  const amberElem = document.getElementById('statAmberCount');
+  const dormantElem = document.getElementById('statDormantCount');
+  if (activeElem) activeElem.innerText = active;
+  if (amberElem) amberElem.innerText = amber;
+  if (dormantElem) dormantElem.innerText = dormant;
+
+  const bSpikes = document.getElementById('badgeSpikes');
+  const bAML = document.getElementById('badgeAML');
+  if (bSpikes) bSpikes.innerText = spikes;
+  if (bAML) bAML.innerText = bursts + singleCust;
 
   const html = `
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Portfolio Turnover</span>
-        <div class="p-2 bg-teal-500/10 text-teal-400 rounded-lg"><i data-lucide="dollar-sign" class="w-4 h-4"></i></div>
+    <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-1 sm:mb-2">
+        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 text-secondary uppercase tracking-wider">Turnover</span>
+        <div class="p-1.5 sm:p-2 bg-teal-500/10 text-teal-400 rounded-lg"><i data-lucide="dollar-sign" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i></div>
       </div>
-      <div class="text-2xl font-bold text-white tracking-tight">${formatBDT(totalPA)}</div>
-      <div class="flex items-center space-x-2 mt-2 text-xs text-slate-400">
-        <span class="text-teal-400 font-semibold">${formatBDT(augPA)}</span>
-        <span>in August '26</span>
-      </div>
-    </div>
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">August Transactions</span>
-        <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg"><i data-lucide="activity" class="w-4 h-4"></i></div>
-      </div>
-      <div class="text-2xl font-bold text-white tracking-tight">${formatNumber(augPC)}</div>
-      <div class="flex items-center space-x-2 mt-2 text-xs text-slate-400">
-        <span>Avg Ticket:</span>
-        <span class="text-cyan-400 font-semibold">${formatBDT(avgTicket)}</span>
+      <div>
+        <div class="text-base sm:text-2xl font-bold text-white text-primary tracking-tight truncate">${formatBDT(totalPA)}</div>
+        <div class="flex items-center space-x-1 mt-1 text-[11px] text-slate-400 text-secondary truncate">
+          <span class="text-teal-400 font-medium">${formatBDT(augPA)}</span>
+          <span class="hidden sm:inline">in August</span>
+        </div>
       </div>
     </div>
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Merchants</span>
-        <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="user-check" class="w-4 h-4"></i></div>
+    <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-1 sm:mb-2">
+        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 text-secondary uppercase tracking-wider">Aug Volume</span>
+        <div class="p-1.5 sm:p-2 bg-cyan-500/10 text-cyan-400 rounded-lg"><i data-lucide="activity" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i></div>
       </div>
-      <div class="flex items-baseline space-x-2">
-        <div class="text-2xl font-bold text-white tracking-tight">${active}</div>
-        <span class="text-xs text-slate-400">/ ${list.length} (${list.length > 0 ? Math.round((active / list.length) * 100) : 0}%)</span>
-      </div>
-      <div class="flex items-center space-x-3 mt-2 text-xs">
-        <span class="text-amber-400">${amber} Amber</span>
-        <span class="text-slate-500">•</span>
-        <span class="text-rose-400">${dormant} Dormant</span>
+      <div>
+        <div class="text-base sm:text-2xl font-bold text-white text-primary tracking-tight truncate">${formatNumber(augPC)} txns</div>
+        <div class="flex items-center space-x-1 mt-1 text-[11px] text-slate-400 text-secondary truncate">
+          <span>Avg:</span>
+          <span class="text-cyan-400 font-medium">${formatBDT(avgTicket)}</span>
+        </div>
       </div>
     </div>
-    <div onclick="switchTab('suspicious')" class="bg-slate-900 border border-slate-800 rounded-xl p-4 cursor-pointer hover:border-rose-500/60 transition-all">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-semibold text-rose-400 uppercase tracking-wider flex items-center space-x-1.5">
-          <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-          <span>Audit Red Flags</span>
+    <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-1 sm:mb-2">
+        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 text-secondary uppercase tracking-wider">Active Rate</span>
+        <div class="p-1.5 sm:p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="user-check" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i></div>
+      </div>
+      <div>
+        <div class="text-base sm:text-2xl font-bold text-white text-primary tracking-tight">${active} <span class="text-xs sm:text-sm font-normal text-slate-400 text-secondary">(${list.length > 0 ? Math.round((active / list.length) * 100) : 0}%)</span></div>
+        <div class="flex items-center space-x-1.5 mt-1 text-[11px] truncate">
+          <span class="text-amber-400 font-medium">${amber} Amb</span>
+          <span class="text-slate-500">•</span>
+          <span class="text-rose-400 font-medium">${dormant} Dorm</span>
+        </div>
+      </div>
+    </div>
+    <div onclick="switchTab('suspicious')" class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-rose-500/50 cursor-pointer transition-all flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-1 sm:mb-2">
+        <span class="text-[10px] sm:text-xs font-semibold text-rose-400 uppercase tracking-wider flex items-center space-x-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+          <span>Red Flags</span>
         </span>
-        <div class="p-2 bg-rose-500/10 text-rose-400 rounded-lg"><i data-lucide="shield-alert" class="w-4 h-4"></i></div>
+        <div class="p-1.5 sm:p-2 bg-rose-500/10 text-rose-400 rounded-lg"><i data-lucide="shield-alert" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i></div>
       </div>
-      <div class="text-2xl font-bold text-white tracking-tight">${bursts + singleCust + spikes}</div>
-      <div class="flex items-center space-x-2 mt-2 text-xs text-slate-400">
-        <span class="text-rose-400 font-semibold">${bursts} Burst</span>
-        <span>•</span>
-        <span class="text-amber-400 font-semibold">${singleCust} Looping</span>
-        <span>•</span>
-        <span class="text-cyan-400 font-semibold">${spikes} Spikes</span>
+      <div>
+        <div class="text-base sm:text-2xl font-bold text-white text-primary tracking-tight">${bursts + singleCust + spikes} Cases</div>
+        <div class="flex items-center space-x-1.5 mt-1 text-[11px] truncate">
+          <span class="text-rose-400 font-medium">${bursts} Burst</span>
+          <span class="text-slate-500">•</span>
+          <span class="text-amber-400 font-medium">${singleCust} Loop</span>
+        </div>
       </div>
     </div>
   `;
   document.getElementById('kpiContainer').innerHTML = html;
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function renderOverviewCharts() {
@@ -901,21 +926,21 @@ function inspectWallet(walletNo) {
   `;
 
   document.getElementById('drawerQuickMetrics').innerHTML = `
-    <div class="p-3 bg-slate-800/40 border border-slate-800 rounded-lg">
-      <span class="text-[10px] uppercase font-bold text-slate-400">Aug PA</span>
-      <div class="text-sm font-bold text-white mt-0.5">${formatBDT(m.augPA)}</div>
+    <div class="p-2.5 sm:p-3 bg-slate-800/40 surface-subtle border border-slate-800/80 rounded-xl">
+      <span class="text-[10px] uppercase font-bold text-slate-400 text-secondary">Aug PA</span>
+      <div class="text-xs sm:text-sm font-bold text-white text-primary mt-0.5 truncate">${formatBDT(m.augPA)}</div>
     </div>
-    <div class="p-3 bg-slate-800/40 border border-slate-800 rounded-lg">
-      <span class="text-[10px] uppercase font-bold text-slate-400">Aug PC</span>
-      <div class="text-sm font-bold text-white mt-0.5">${formatNumber(m.augPC)}</div>
+    <div class="p-2.5 sm:p-3 bg-slate-800/40 surface-subtle border border-slate-800/80 rounded-xl">
+      <span class="text-[10px] uppercase font-bold text-slate-400 text-secondary">Aug PC</span>
+      <div class="text-xs sm:text-sm font-bold text-white text-primary mt-0.5 truncate">${formatNumber(m.augPC)}</div>
     </div>
-    <div class="p-3 bg-slate-800/40 border border-slate-800 rounded-lg">
-      <span class="text-[10px] uppercase font-bold text-slate-400">Avg Ticket</span>
-      <div class="text-sm font-bold text-teal-400 mt-0.5">${formatBDT(m.avgTicketSize)}</div>
+    <div class="p-2.5 sm:p-3 bg-slate-800/40 surface-subtle border border-slate-800/80 rounded-xl">
+      <span class="text-[10px] uppercase font-bold text-slate-400 text-secondary">Avg Ticket</span>
+      <div class="text-xs sm:text-sm font-bold text-teal-400 mt-0.5 truncate">${formatBDT(m.avgTicketSize)}</div>
     </div>
-    <div class="p-3 bg-slate-800/40 border border-slate-800 rounded-lg">
-      <span class="text-[10px] uppercase font-bold text-slate-400">MoM Growth</span>
-      <div class="text-sm font-bold text-white mt-0.5">${m.isNewGrowth ? 'New' : formatPercent(m.growth)}</div>
+    <div class="p-2.5 sm:p-3 bg-slate-800/40 surface-subtle border border-slate-800/80 rounded-xl">
+      <span class="text-[10px] uppercase font-bold text-slate-400 text-secondary">MoM Growth</span>
+      <div class="text-xs sm:text-sm font-bold text-white text-primary mt-0.5 truncate">${m.isNewGrowth ? 'New' : formatPercent(m.growth)}</div>
     </div>
   `;
 
@@ -999,13 +1024,13 @@ function inspectWallet(walletNo) {
   document.getElementById('drawerFlagsContainer').innerHTML = flagsHtml;
 
   document.getElementById('drawerDemographics').innerHTML = `
-    <div class="flex justify-between"><span class="text-slate-400">Acquisition Officer:</span><span class="font-semibold text-white">${m.maoName}</span></div>
-    <div class="flex justify-between"><span class="text-slate-400">Territory:</span><span class="font-semibold text-white">${m.isdOsd}</span></div>
-    <div class="flex justify-between"><span class="text-slate-400">Registration Date:</span><span class="font-semibold text-teal-400">${m.regDate}</span></div>
-    <div class="flex justify-between"><span class="text-slate-400">Active Evaluation Tenure:</span><span class="font-semibold text-white">${m.tenureMonths || 8} month(s) (Month ${m.onboardMonth || 1} to 8)</span></div>
-    <div class="flex justify-between"><span class="text-slate-400">Pre-Onboarding Months:</span><span class="font-semibold text-slate-400">${m.preOnboardingMonths || 0} month(s) (Prior to Registration)</span></div>
-    <div class="flex justify-between"><span class="text-slate-400">True Post-Onboard Dormancy:</span><span class="font-bold ${m.dormantMonths >= 4 ? 'text-rose-400' : m.dormantMonths > 0 ? 'text-amber-400' : 'text-emerald-400'}">${m.dormantMonths || 0} month(s)</span></div>
-    <div class="flex justify-between"><span class="text-slate-400">Address:</span><span class="font-semibold text-white truncate max-w-[280px]">${m.address}</span></div>
+    <div class="flex justify-between items-center"><span class="text-slate-400 text-secondary">Acquisition Officer:</span><span class="font-semibold text-white text-primary">${m.maoName}</span></div>
+    <div class="flex justify-between items-center"><span class="text-slate-400 text-secondary">Territory:</span><span class="font-semibold text-white text-primary">${m.isdOsd}</span></div>
+    <div class="flex justify-between items-center"><span class="text-slate-400 text-secondary">Registration Date:</span><span class="font-semibold text-teal-400 font-mono text-[11px]">${m.regDate}</span></div>
+    <div class="flex justify-between items-center"><span class="text-slate-400 text-secondary">Active Evaluation Tenure:</span><span class="font-semibold text-white text-primary">${m.tenureMonths || 8} month(s) (Month ${m.onboardMonth || 1} to 8)</span></div>
+    <div class="flex justify-between items-center"><span class="text-slate-400 text-secondary">Pre-Onboarding Months:</span><span class="font-semibold text-slate-400 text-secondary">${m.preOnboardingMonths || 0} month(s) (Prior to Registration)</span></div>
+    <div class="flex justify-between items-center"><span class="text-slate-400 text-secondary">True Post-Onboard Dormancy:</span><span class="font-bold ${m.dormantMonths >= 4 ? 'text-rose-400' : m.dormantMonths > 0 ? 'text-amber-400' : 'text-emerald-400'}">${m.dormantMonths || 0} month(s)</span></div>
+    <div class="flex justify-between items-center"><span class="text-slate-400 text-secondary">Address:</span><span class="font-semibold text-white text-primary truncate max-w-[200px] sm:max-w-[280px]">${m.address}</span></div>
   `;
 
   document.getElementById('merchantDrawer').classList.remove('hidden');
@@ -1071,14 +1096,35 @@ function exportData(type) {
 }
 
 function setupEventListeners() {
+  // Desktop tab buttons
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
   });
 
-  document.getElementById('globalSearchInput').addEventListener('input', () => {
-    applyExplorerFilters();
-    switchTab('explorer');
+  // Mobile bottom dock buttons
+  document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
   });
+
+  // Synchronized Search (Desktop & Mobile)
+  const desktopSearch = document.getElementById('globalSearchInput');
+  const mobileSearch = document.getElementById('mobileGlobalSearchInput');
+
+  if (desktopSearch) {
+    desktopSearch.addEventListener('input', (e) => {
+      if (mobileSearch) mobileSearch.value = e.target.value;
+      applyExplorerFilters();
+      switchTab('explorer');
+    });
+  }
+
+  if (mobileSearch) {
+    mobileSearch.addEventListener('input', (e) => {
+      if (desktopSearch) desktopSearch.value = e.target.value;
+      applyExplorerFilters();
+      switchTab('explorer');
+    });
+  }
 
   document.getElementById('filterPillar').addEventListener('change', applyExplorerFilters);
   document.getElementById('filterFlag').addEventListener('change', applyExplorerFilters);
@@ -1087,7 +1133,8 @@ function setupEventListeners() {
     document.getElementById('filterPillar').value = 'ALL';
     document.getElementById('filterFlag').value = 'ALL';
     document.getElementById('filterStatus').value = 'ALL';
-    document.getElementById('globalSearchInput').value = '';
+    if (desktopSearch) desktopSearch.value = '';
+    if (mobileSearch) mobileSearch.value = '';
     applyExplorerFilters();
   });
 
@@ -1099,22 +1146,25 @@ function setupEventListeners() {
     if (currentExplorerPage < totalPages) { currentExplorerPage++; renderExplorerTable(); }
   });
 
-  document.getElementById('closeDrawerBtn').addEventListener('click', () => {
+  const closeDrawer = () => {
     document.getElementById('merchantDrawer').classList.add('hidden');
-  });
-  document.getElementById('closeDrawerBtn2').addEventListener('click', () => {
-    document.getElementById('merchantDrawer').classList.add('hidden');
-  });
+  };
+  document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer);
+  document.getElementById('closeDrawerBtn2').addEventListener('click', closeDrawer);
+  const drawerBackdrop = document.getElementById('drawerBackdrop');
+  if (drawerBackdrop) drawerBackdrop.addEventListener('click', closeDrawer);
 
-  document.getElementById('openExportBtn').addEventListener('click', () => {
+  const openExport = () => {
     document.getElementById('exportModal').classList.remove('hidden');
-  });
-  document.getElementById('closeExportBtn').addEventListener('click', () => {
+  };
+  const closeExport = () => {
     document.getElementById('exportModal').classList.add('hidden');
-  });
-  document.getElementById('closeExportBtn2').addEventListener('click', () => {
-    document.getElementById('exportModal').classList.add('hidden');
-  });
+  };
+  document.getElementById('openExportBtn').addEventListener('click', openExport);
+  document.getElementById('closeExportBtn').addEventListener('click', closeExport);
+  document.getElementById('closeExportBtn2').addEventListener('click', closeExport);
+  const exportBackdrop = document.getElementById('exportBackdrop');
+  if (exportBackdrop) exportBackdrop.addEventListener('click', closeExport);
 
   const themeToggleBtn = document.getElementById('themeToggleBtn');
   if (themeToggleBtn) {

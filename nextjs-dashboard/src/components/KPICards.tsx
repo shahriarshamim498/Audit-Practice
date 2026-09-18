@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import { PortfolioStats } from '../types';
@@ -12,85 +12,83 @@ interface KPICardsProps {
 
 export const KPICards: React.FC<KPICardsProps> = ({ stats, onNavigateTab }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
       {/* Total Volume */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 relative overflow-hidden group hover:border-teal-500/50 transition-all">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Turnover (8 Months)</span>
-          <div className="p-2 bg-teal-500/10 text-teal-400 rounded-lg">
-            <DollarSign className="w-4 h-4" />
+      <div className="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-1 sm:mb-2">
+          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 text-secondary uppercase tracking-wider">Turnover</span>
+          <div className="p-1.5 sm:p-2 bg-teal-500/10 text-teal-400 rounded-lg">
+            <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </div>
-        <div className="text-2xl font-bold text-white tracking-tight">{formatBDT(stats.totalPA)}</div>
-        <div className="flex items-center space-x-2 mt-2 text-xs text-slate-400">
-          <span className="text-teal-400 font-semibold">{formatBDT(stats.augPA)}</span>
-          <span>in August '26</span>
+        <div>
+          <div className="text-base sm:text-2xl font-bold text-white text-primary tracking-tight truncate">{formatBDT(stats.totalPA)}</div>
+          <div className="flex items-center space-x-1 mt-1 text-[11px] text-slate-400 text-secondary truncate">
+            <span className="text-teal-400 font-medium">{formatBDT(stats.augPA)}</span>
+            <span className="hidden sm:inline">in August</span>
+          </div>
         </div>
-        <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-teal-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-teal-500/10 transition-all" />
       </div>
 
       {/* Transaction Count */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 relative overflow-hidden group hover:border-cyan-500/50 transition-all">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">August Transactions</span>
-          <div className="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg">
-            <Activity className="w-4 h-4" />
+      <div className="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-1 sm:mb-2">
+          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 text-secondary uppercase tracking-wider">Aug Volume</span>
+          <div className="p-1.5 sm:p-2 bg-cyan-500/10 text-cyan-400 rounded-lg">
+            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </div>
-        <div className="text-2xl font-bold text-white tracking-tight">{formatNumber(stats.augPC)}</div>
-        <div className="flex items-center space-x-2 mt-2 text-xs text-slate-400">
-          <span>Avg Ticket:</span>
-          <span className="text-cyan-400 font-semibold">{formatBDT(stats.avgAugTicketSize)}</span>
-          <span>(Total: {formatNumber(stats.totalPC)})</span>
+        <div>
+          <div className="text-base sm:text-2xl font-bold text-white text-primary tracking-tight truncate">{formatNumber(stats.augPC)} txns</div>
+          <div className="flex items-center space-x-1 mt-1 text-[11px] text-slate-400 text-secondary truncate">
+            <span>Avg:</span>
+            <span className="text-cyan-400 font-medium">{formatBDT(stats.avgAugTicketSize)}</span>
+          </div>
         </div>
-        <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-cyan-500/10 transition-all" />
       </div>
 
       {/* Active Clients */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 relative overflow-hidden group hover:border-emerald-500/50 transition-all">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Merchants</span>
-          <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
-            <UserCheck className="w-4 h-4" />
+      <div className="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-1 sm:mb-2">
+          <span className="text-[10px] sm:text-xs font-semibold text-slate-400 text-secondary uppercase tracking-wider">Active Rate</span>
+          <div className="p-1.5 sm:p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
+            <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </div>
-        <div className="flex items-baseline space-x-2">
-          <div className="text-2xl font-bold text-white tracking-tight">{stats.activeCount}</div>
-          <span className="text-xs text-slate-400">/ {stats.totalMerchants} clients ({Math.round((stats.activeCount / stats.totalMerchants) * 100)}%)</span>
+        <div>
+          <div className="text-base sm:text-2xl font-bold text-white text-primary tracking-tight">{stats.activeCount} <span className="text-xs sm:text-sm font-normal text-slate-400 text-secondary">({Math.round((stats.activeCount / stats.totalMerchants) * 100)}%)</span></div>
+          <div className="flex items-center space-x-1.5 mt-1 text-[11px] truncate">
+            <span className="text-amber-400 font-medium">{stats.amberCount} Amb</span>
+            <span className="text-slate-500">•</span>
+            <span className="text-rose-400 font-medium">{stats.dormantCount} Dorm</span>
+          </div>
         </div>
-        <div className="flex items-center space-x-3 mt-2 text-xs">
-          <span className="text-amber-400">{stats.amberCount} Amber</span>
-          <span className="text-slate-500">•</span>
-          <span className="text-rose-400">{stats.dormantCount} Dormant</span>
-        </div>
-        <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/10 transition-all" />
       </div>
 
       {/* Critical Audit Alerts */}
       <div
         onClick={() => onNavigateTab('suspicious')}
-        className="bg-slate-900 border border-slate-800 rounded-xl p-4 relative overflow-hidden group hover:border-rose-500/60 cursor-pointer transition-all"
+        className="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-rose-500/50 cursor-pointer transition-all flex flex-col justify-between"
       >
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-rose-400 uppercase tracking-wider flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-            <span>Audit Red Flags</span>
+        <div className="flex items-center justify-between mb-1 sm:mb-2">
+          <span className="text-[10px] sm:text-xs font-semibold text-rose-400 uppercase tracking-wider flex items-center space-x-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+            <span>Red Flags</span>
           </span>
-          <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg">
-            <ShieldAlert className="w-4 h-4" />
+          <div className="p-1.5 sm:p-2 bg-rose-500/10 text-rose-400 rounded-lg">
+            <ShieldAlert className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </div>
-        <div className="text-2xl font-bold text-white tracking-tight">
-          {stats.flaggedCounts.burstReactivation + stats.flaggedCounts.singleCustomerRisk + stats.flaggedCounts.growthSpike}
+        <div>
+          <div className="text-base sm:text-2xl font-bold text-white text-primary tracking-tight">
+            {stats.flaggedCounts.burstReactivation + stats.flaggedCounts.singleCustomerRisk + stats.flaggedCounts.growthSpike} Cases
+          </div>
+          <div className="flex items-center space-x-1.5 mt-1 text-[11px] truncate">
+            <span className="text-rose-400 font-medium">{stats.flaggedCounts.burstReactivation} Burst</span>
+            <span className="text-slate-500">•</span>
+            <span className="text-amber-400 font-medium">{stats.flaggedCounts.singleCustomerRisk} Loop</span>
+          </div>
         </div>
-        <div className="flex items-center space-x-2 mt-2 text-xs text-slate-400">
-          <span className="text-rose-400 font-semibold">{stats.flaggedCounts.burstReactivation} Burst</span>
-          <span>•</span>
-          <span className="text-amber-400 font-semibold">{stats.flaggedCounts.singleCustomerRisk} Single Cust</span>
-          <span>•</span>
-          <span className="text-cyan-400 font-semibold">{stats.flaggedCounts.growthSpike} Spikes</span>
-        </div>
-        <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-rose-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-rose-500/20 transition-all" />
       </div>
     </div>
   );
