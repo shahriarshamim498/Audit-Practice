@@ -566,37 +566,102 @@ function renderAnomalyView() {
     </div>
   `;
 
-  const anomalyList = merchants.filter(m => m.flags.growthSpike || m.flags.megaVolume || m.flags.cliffDrop);
-  document.getElementById('anomalyCountLabel').innerText = `Showing ${anomalyList.length} anomalies`;
+  // Dynamic Spotlight strictly for selected MAO
+  const officerLabel = document.getElementById('anomalySpotlightOfficerLabel');
+  if (officerLabel) {
+    officerLabel.innerText = selectedGlobalMAO === 'ALL' ? 'All Officers' : `Officer: ${selectedGlobalMAO}`;
+  }
 
-  const tableHtml = anomalyList.slice(0, 30).map(m => `
-    <tr class="hover:bg-slate-800/40 transition-colors">
-      <td class="p-3">
-        <div class="font-semibold text-white truncate max-w-[200px]">${m.merchantName}</div>
-        <div class="text-[11px] text-slate-400">${m.walletNo}</div>
-      </td>
-      <td class="p-3 text-slate-300">${m.subPillar}</td>
-      <td class="p-3 text-slate-300">${m.district}</td>
-      <td class="p-3 text-right text-slate-300">${formatBDT(m.monthly[6]?.pa || 0)}</td>
-      <td class="p-3 text-right font-bold text-white">${formatBDT(m.augPA)}</td>
-      <td class="p-3 text-right font-bold ${m.growth >= 100 ? 'text-amber-400' : 'text-slate-300'}">
-        ${m.isNewGrowth ? 'New' : formatPercent(m.growth)}
-      </td>
-      <td class="p-3 text-center">
-        <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${
-          m.flags.megaVolume ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
-          m.flags.cliffDrop ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-          'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-        }">
-          ${m.flags.megaVolume ? 'Mega Volume' : m.flags.cliffDrop ? 'Cliff Drop' : 'Growth Spike'}
-        </span>
-      </td>
-      <td class="p-3 text-center">
-        <button onclick="inspectWallet('${m.walletNo}')" class="text-teal-400 hover:underline font-medium">Inspect</button>
-      </td>
-    </tr>
-  `).join('');
-  document.getElementById('anomalyTableBody').innerHTML = tableHtml;
+  const spotlightContainer = document.getElementById('anomalySpotlightCards');
+  if (spotlightContainer) {
+    const topAnomalies = [...list]
+      .filter(m => m.flags.growthSpike || m.flags.megaVolume || m.flags.cliffDrop)
+      .sort((a, b) => (b.growth || 0) - (a.growth || 0) || b.augPA - a.augPA)
+      .slice(0, 2);
+
+    if (topAnomalies.length === 0) {
+      spotlightContainer.innerHTML = `
+        <div class="col-span-1 md:col-span-2 p-4 bg-slate-800/40 surface-subtle border border-slate-700/60 rounded-xl text-center text-slate-400 text-xs">
+          No extreme anomaly cases detected for <strong>${selectedGlobalMAO === 'ALL' ? 'the portfolio' : selectedGlobalMAO}</strong>.
+        </div>
+      `;
+    } else {
+      spotlightContainer.innerHTML = topAnomalies.map(m => {
+        let tag = 'Growth Spike';
+        let tagColor = 'bg-amber-500/10 text-amber-300 border-amber-500/30';
+        let desc = `Surged +${m.isNewGrowth ? 'New' : formatPercent(m.growth)} MoM to ${formatBDT(m.augPA)} across ${formatNumber(m.augPC)} transactions.`;
+        if (m.flags.megaVolume) {
+          tag = 'Mega Volume';
+          tagColor = 'bg-teal-500/10 text-teal-300 border-teal-500/30';
+          desc = `Processed ${formatBDT(m.augPA)} in August across ${formatNumber(m.augPC)} transactions (${formatBDT(m.totalPA)} total volume).`;
+        } else if (m.flags.cliffDrop) {
+          tag = 'Cliff Drop';
+          tagColor = 'bg-rose-500/10 text-rose-300 border-rose-500/30';
+          desc = `July volume (${formatBDT(m.monthly[6]?.pa || 0)}) dropped to BDT 0 in August. Requires immediate churn review.`;
+        }
+        return `
+          <div class="p-3.5 bg-slate-800/40 surface-subtle border border-slate-700/60 rounded-xl cursor-pointer hover:border-teal-500/60 transition-colors" onclick="inspectWallet('${m.walletNo}')">
+            <div class="flex justify-between items-start mb-1">
+              <span class="font-bold text-teal-400 text-sm truncate max-w-[220px]">${m.merchantName}</span>
+              <span class="px-2 py-0.5 ${tagColor} border rounded-full font-semibold text-[10px] shrink-0">${tag}</span>
+            </div>
+            <div class="text-[10px] text-slate-400 font-mono mb-1">${m.walletNo} • MAO: ${m.maoName}</div>
+            <p class="text-slate-300 text-secondary text-[11px] mt-1 leading-relaxed">${desc}</p>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // Strictly filter anomaly table to active list
+  const anomalyList = list.filter(m => m.flags.growthSpike || m.flags.megaVolume || m.flags.cliffDrop);
+  const countLabel = document.getElementById('anomalyCountLabel');
+  if (countLabel) {
+    countLabel.innerText = selectedGlobalMAO === 'ALL'
+      ? `Showing ${anomalyList.length} anomalies across all officers`
+      : `Showing ${anomalyList.length} anomalies for ${selectedGlobalMAO}`;
+  }
+
+  const tableBody = document.getElementById('anomalyTableBody');
+  if (anomalyList.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="p-6 text-center text-slate-400 text-xs">
+          No anomalous accounts found for ${selectedGlobalMAO === 'ALL' ? 'this portfolio' : selectedGlobalMAO}.
+        </td>
+      </tr>
+    `;
+  } else {
+    tableBody.innerHTML = anomalyList.slice(0, 50).map(m => `
+      <tr class="hover:bg-slate-800/40 table-row transition-colors">
+        <td class="p-3">
+          <div class="font-semibold text-white text-primary truncate max-w-[200px]">${m.merchantName}</div>
+          <div class="text-[11px] text-slate-400 font-mono">${m.walletNo}</div>
+        </td>
+        <td class="p-3 text-slate-300 text-secondary">${m.subPillar}</td>
+        <td class="p-3 text-slate-300 text-secondary">${m.district}</td>
+        <td class="p-3 text-right text-slate-300 text-secondary">${formatBDT(m.monthly[6]?.pa || 0)}</td>
+        <td class="p-3 text-right font-bold text-white text-primary">${formatBDT(m.augPA)}</td>
+        <td class="p-3 text-right font-bold ${m.growth >= 100 ? 'text-amber-400' : 'text-slate-300'}">
+          ${m.isNewGrowth ? 'New' : formatPercent(m.growth)}
+        </td>
+        <td class="p-3 text-center">
+          <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${
+            m.flags.megaVolume ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
+            m.flags.cliffDrop ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+            'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+          }">
+            ${m.flags.megaVolume ? 'Mega Volume' : m.flags.cliffDrop ? 'Cliff Drop' : 'Growth Spike'}
+          </span>
+        </td>
+        <td class="p-3 text-center">
+          <button onclick="inspectWallet('${m.walletNo}')" class="text-teal-400 hover:underline font-medium">Inspect</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function renderSuspiciousView() {

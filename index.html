@@ -417,31 +417,17 @@
         <!-- Injected by JS -->
       </div>
 
-      <!-- Spotlight Banner -->
+      <!-- Spotlight Banner (Dynamically populated for selected MAO) -->
       <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm">
-        <div class="flex items-center space-x-2 mb-3">
-          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
-          <h2 class="text-xs sm:text-sm font-bold text-white text-primary tracking-tight">Spotlight Anomaly Accounts</h2>
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+            <h2 class="text-xs sm:text-sm font-bold text-white text-primary tracking-tight">Spotlight Anomaly Accounts</h2>
+          </div>
+          <span class="text-[11px] text-teal-400 font-semibold" id="anomalySpotlightOfficerLabel">All Officers</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          <div class="p-3.5 bg-slate-800/40 surface-subtle border border-slate-700/60 rounded-xl cursor-pointer hover:border-teal-500/60 transition-colors" onclick="inspectWallet('1335101883')">
-            <div class="flex justify-between items-start mb-1">
-              <span class="font-bold text-teal-400 text-sm">Ambala Commerce</span>
-              <span class="px-2 py-0.5 bg-teal-500/10 text-teal-300 border border-teal-500/30 rounded-full font-semibold text-[10px]">Mega Volume</span>
-            </div>
-            <p class="text-slate-300 text-secondary text-[11px] mt-1 leading-relaxed">
-              Exploded to <strong class="text-white text-primary">BDT 262.8M</strong> in August across 61,764 transactions. Accounts for ~80% of entire portfolio volume.
-            </p>
-          </div>
-          <div class="p-3.5 bg-slate-800/40 surface-subtle border border-slate-700/60 rounded-xl cursor-pointer hover:border-amber-500/60 transition-colors" onclick="inspectWallet('1849911555')">
-            <div class="flex justify-between items-start mb-1">
-              <span class="font-bold text-amber-400 text-sm">Sroddhaa</span>
-              <span class="px-2 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/30 rounded-full font-semibold text-[10px]">+351,482% Surge</span>
-            </div>
-            <p class="text-slate-300 text-secondary text-[11px] mt-1 leading-relaxed">
-              Transacted only BDT 95 in July, and suddenly exploded to <strong class="text-white text-primary">BDT 334k</strong> across 167 transactions in August.
-            </p>
-          </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs" id="anomalySpotlightCards">
+          <!-- Injected dynamically by JS renderAnomalyView() based on active MAO -->
         </div>
       </div>
 

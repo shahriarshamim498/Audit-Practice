@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { Merchant } from '../types';
@@ -94,34 +94,63 @@ export const AnomalyTab: React.FC<AnomalyTabProps> = ({ merchants, onSelectMerch
         </div>
       </div>
 
-      {/* Spotlight Case: Ambala Commerce & Sroddhaa */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800/80 to-slate-900 border border-slate-700/60 rounded-xl p-5 shadow-lg">
-        <div className="flex items-center space-x-2 mb-3">
-          <AlertTriangle className="w-5 h-5 text-amber-400" />
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Audit Spotlight: Significant Anomaly Cases</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg">
-            <div className="flex justify-between items-start mb-1">
-              <span className="font-bold text-cyan-400 text-sm">Ambala Commerce (1335101883)</span>
-              <span className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded font-semibold text-[10px]">Mega Outlier</span>
-            </div>
-            <p className="text-slate-300 mt-1">
-              Turnover exploded from BDT 1.5M (March) to <strong className="text-white">BDT 262.8 Million</strong> in August across 61,764 transactions. Generates over 80% of the entire portfolio's August turnover.
-            </p>
-          </div>
+      {/* Spotlight Case (Dynamically filtered to selected MAO) */}
+      {(() => {
+        const topAnomalies = [...merchants]
+          .filter((m) => m.flags.growthSpike || m.flags.megaVolume || m.flags.cliffDrop)
+          .sort((a, b) => (b.growth || 0) - (a.growth || 0) || b.augPA - a.augPA)
+          .slice(0, 2);
 
-          <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-lg">
-            <div className="flex justify-between items-start mb-1">
-              <span className="font-bold text-amber-400 text-sm">Sroddhaa (1849911555)</span>
-              <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded font-semibold text-[10px]">+351,482% Surge</span>
+        return (
+          <div className="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
+                <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">Spotlight Anomaly Accounts</h2>
+              </div>
+              <span className="text-[11px] text-teal-400 font-semibold">
+                {merchants.length > 0 && merchants[0]?.maoName ? `Officer: ${merchants[0].maoName}` : 'All Officers'}
+              </span>
             </div>
-            <p className="text-slate-300 mt-1">
-              Account transacted only 1 payment of BDT 95 in July, and suddenly exploded to <strong className="text-white">BDT 334,003</strong> across 167 transactions in August. Immediate review required.
-            </p>
+            {topAnomalies.length === 0 ? (
+              <div className="p-4 bg-slate-800/40 border border-slate-700/60 rounded-xl text-center text-slate-400 text-xs">
+                No extreme anomaly cases detected for this selection.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                {topAnomalies.map((m) => {
+                  let tag = 'Growth Spike';
+                  let tagColor = 'bg-amber-500/10 text-amber-300 border-amber-500/30';
+                  let desc = `Surged +${m.isNewGrowth ? 'New' : formatPercent(m.growth)} MoM to ${formatBDT(m.augPA)} across ${formatNumber(m.augPC)} txns.`;
+                  if (m.flags.megaVolume) {
+                    tag = 'Mega Volume';
+                    tagColor = 'bg-teal-500/10 text-teal-300 border-teal-500/30';
+                    desc = `Processed ${formatBDT(m.augPA)} in August across ${formatNumber(m.augPC)} txns (${formatBDT(m.totalPA)} total).`;
+                  } else if (m.flags.cliffDrop) {
+                    tag = 'Cliff Drop';
+                    tagColor = 'bg-rose-500/10 text-rose-300 border-rose-500/30';
+                    desc = `High turnover in July (${formatBDT(m.monthly[6]?.pa || 0)}) dropped to BDT 0 in August.`;
+                  }
+                  return (
+                    <div
+                      key={m.walletNo}
+                      onClick={() => onSelectMerchant(m)}
+                      className="p-3.5 bg-slate-800/40 border border-slate-700/60 rounded-xl cursor-pointer hover:border-teal-500/60 transition-colors"
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-teal-400 text-sm truncate max-w-[220px]">{m.merchantName}</span>
+                        <span className={`px-2 py-0.5 ${tagColor} border rounded-full font-semibold text-[10px] shrink-0`}>{tag}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono mb-1">{m.walletNo} • MAO: ${m.maoName}</div>
+                      <p className="text-slate-300 text-[11px] mt-1 leading-relaxed">{desc}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Anomalous Merchants Data Grid */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
