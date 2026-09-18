@@ -197,6 +197,7 @@ function switchTab(tabId) {
 function renderKPICards() {
   const list = getActiveMerchants();
   let totalPA = 0, augPA = 0, totalPC = 0, augPC = 0;
+  let julPA = 0, julPC = 0;
   let active = 0, amber = 0, dormant = 0;
   let bursts = 0, singleCust = 0, spikes = 0;
 
@@ -205,6 +206,10 @@ function renderKPICards() {
     augPA += m.augPA;
     totalPC += m.totalPC;
     augPC += m.augPC;
+    if (m.monthly && m.monthly[6]) {
+      julPA += m.monthly[6].pa || 0;
+      julPC += m.monthly[6].pc || 0;
+    }
     if (m.augActive === 'Active') active++;
     else if (m.augActive === 'Amber') amber++;
     else dormant++;
@@ -214,7 +219,12 @@ function renderKPICards() {
     if (m.flags.growthSpike) spikes++;
   }
 
-  const avgTicket = augPC > 0 ? augPA / augPC : 0;
+  const paGrowth = julPA > 0 ? ((augPA - julPA) / julPA) * 100 : 0;
+  const pcGrowth = julPC > 0 ? ((augPC - julPC) / julPC) * 100 : 0;
+  const activePct = list.length > 0 ? ((active / list.length) * 100).toFixed(1) : '0';
+  const totalFlags = bursts + singleCust + spikes;
+  const flagPct = list.length > 0 ? ((totalFlags / list.length) * 100).toFixed(1) : '0';
+
   const activeElem = document.getElementById('statActiveCount');
   const amberElem = document.getElementById('statAmberCount');
   const dormantElem = document.getElementById('statDormantCount');
@@ -228,60 +238,86 @@ function renderKPICards() {
   if (bAML) bAML.innerText = bursts + singleCust;
 
   const html = `
-    <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between">
-      <div class="flex items-center justify-between mb-1 sm:mb-2">
-        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 text-secondary uppercase tracking-wider">Turnover</span>
-        <div class="p-1.5 sm:p-2 bg-teal-500/10 text-teal-400 rounded-lg"><i data-lucide="dollar-sign" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i></div>
+    <!-- Card 1: Page Views / Portfolio Turnover -->
+    <div class="bg-white dark:bg-slate-900 surface-card border border-slate-100 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-md transition-all flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Portfolio Turnover</span>
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <i data-lucide="eye" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </div>
       </div>
-      <div>
-        <div class="text-base sm:text-2xl font-bold text-white text-primary tracking-tight truncate">${formatBDT(totalPA)}</div>
-        <div class="flex items-center space-x-1 mt-1 text-[11px] text-slate-400 text-secondary truncate">
-          <span class="text-teal-400 font-medium">${formatBDT(augPA)}</span>
-          <span class="hidden sm:inline">in August</span>
+      <div class="mt-3">
+        <div class="flex items-baseline flex-wrap gap-2">
+          <span class="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">${formatBDT(totalPA)}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${paGrowth >= 0 ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400'}">
+            <span class="mr-0.5 text-[9px]">${paGrowth >= 0 ? '▲' : '▼'}</span>${Math.abs(paGrowth).toFixed(1)}%
+          </span>
+        </div>
+        <div class="text-xs text-slate-400 dark:text-slate-500 mt-1.5 font-normal truncate">
+          vs. ${formatBDT(julPA)} last period
         </div>
       </div>
     </div>
-    <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between">
-      <div class="flex items-center justify-between mb-1 sm:mb-2">
-        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 text-secondary uppercase tracking-wider">Aug Volume</span>
-        <div class="p-1.5 sm:p-2 bg-cyan-500/10 text-cyan-400 rounded-lg"><i data-lucide="activity" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i></div>
+
+    <!-- Card 2: Visitors / Active Merchants -->
+    <div class="bg-white dark:bg-slate-900 surface-card border border-slate-100 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-md transition-all flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Active Merchants</span>
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <i data-lucide="users" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </div>
       </div>
-      <div>
-        <div class="text-base sm:text-2xl font-bold text-white text-primary tracking-tight truncate">${formatNumber(augPC)} txns</div>
-        <div class="flex items-center space-x-1 mt-1 text-[11px] text-slate-400 text-secondary truncate">
-          <span>Avg:</span>
-          <span class="text-cyan-400 font-medium">${formatBDT(avgTicket)}</span>
+      <div class="mt-3">
+        <div class="flex items-baseline flex-wrap gap-2">
+          <span class="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">${formatNumber(active)}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <span class="mr-0.5 text-[9px]">▲</span>${activePct}%
+          </span>
+        </div>
+        <div class="text-xs text-slate-400 dark:text-slate-500 mt-1.5 font-normal truncate">
+          vs. ${list.length} total accounts
         </div>
       </div>
     </div>
-    <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-slate-700/80 transition-all flex flex-col justify-between">
-      <div class="flex items-center justify-between mb-1 sm:mb-2">
-        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 text-secondary uppercase tracking-wider">Active Rate</span>
-        <div class="p-1.5 sm:p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="user-check" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i></div>
+
+    <!-- Card 3: Click / August Transactions -->
+    <div class="bg-white dark:bg-slate-900 surface-card border border-slate-100 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-md transition-all flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">August Transactions</span>
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <i data-lucide="mouse-pointer" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </div>
       </div>
-      <div>
-        <div class="text-base sm:text-2xl font-bold text-white text-primary tracking-tight">${active} <span class="text-xs sm:text-sm font-normal text-slate-400 text-secondary">(${list.length > 0 ? Math.round((active / list.length) * 100) : 0}%)</span></div>
-        <div class="flex items-center space-x-1.5 mt-1 text-[11px] truncate">
-          <span class="text-amber-400 font-medium">${amber} Amb</span>
-          <span class="text-slate-500">•</span>
-          <span class="text-rose-400 font-medium">${dormant} Dorm</span>
+      <div class="mt-3">
+        <div class="flex items-baseline flex-wrap gap-2">
+          <span class="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">${formatNumber(augPC)}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${pcGrowth >= 0 ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400'}">
+            <span class="mr-0.5 text-[9px]">${pcGrowth >= 0 ? '▲' : '▼'}</span>${Math.abs(pcGrowth).toFixed(1)}%
+          </span>
+        </div>
+        <div class="text-xs text-slate-400 dark:text-slate-500 mt-1.5 font-normal truncate">
+          vs. ${formatNumber(julPC)} last period
         </div>
       </div>
     </div>
-    <div onclick="switchTab('suspicious')" class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3 sm:p-4 shadow-sm hover:border-rose-500/50 cursor-pointer transition-all flex flex-col justify-between">
-      <div class="flex items-center justify-between mb-1 sm:mb-2">
-        <span class="text-[10px] sm:text-xs font-semibold text-rose-400 uppercase tracking-wider flex items-center space-x-1.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-          <span>Red Flags</span>
-        </span>
-        <div class="p-1.5 sm:p-2 bg-rose-500/10 text-rose-400 rounded-lg"><i data-lucide="shield-alert" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i></div>
+
+    <!-- Card 4: Orders / Audit Red Flags -->
+    <div onclick="switchTab('suspicious')" class="bg-white dark:bg-slate-900 surface-card border border-slate-100 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer transition-all flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Audit Red Flags</span>
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <i data-lucide="inbox" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        </div>
       </div>
-      <div>
-        <div class="text-base sm:text-2xl font-bold text-white text-primary tracking-tight">${bursts + singleCust + spikes} Cases</div>
-        <div class="flex items-center space-x-1.5 mt-1 text-[11px] truncate">
-          <span class="text-rose-400 font-medium">${bursts} Burst</span>
-          <span class="text-slate-500">•</span>
-          <span class="text-amber-400 font-medium">${singleCust} Loop</span>
+      <div class="mt-3">
+        <div class="flex items-baseline flex-wrap gap-2">
+          <span class="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">${formatNumber(totalFlags)}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400">
+            <span class="mr-0.5 text-[9px]">▼</span>${flagPct}%
+          </span>
+        </div>
+        <div class="text-xs text-slate-400 dark:text-slate-500 mt-1.5 font-normal truncate">
+          vs. ${formatNumber(list.length - totalFlags)} clean accounts
         </div>
       </div>
     </div>
