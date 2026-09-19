@@ -61,7 +61,7 @@ export const AnomalyTab: React.FC<AnomalyTabProps> = ({ merchants, onSelectMerch
     );
   })();
 
-  const pillKeys = ['ALL', 'HEALTHCARE', 'EDUCATION', 'FOOD_DINING', 'GROCERY', 'ELECTRONICS', 'FASHION', 'DIGITAL_SERVICES', 'GENERAL_RETAIL'];
+  const pillKeys = ['ALL', 'LAUNDRY', 'AUTOMOBILES', 'FURNITURE', 'BEAUTY_SALON', 'TRAVEL_TOURISM', 'HEALTHCARE', 'EDUCATION', 'FOOD_DINING', 'GROCERY', 'ELECTRONICS', 'FASHION', 'DIGITAL_SERVICES', 'GENERAL_RETAIL'];
 
   return (
     <div className="space-y-6">
