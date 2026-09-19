@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useMemo } from 'react';
 import { Merchant } from '../types';
@@ -18,6 +18,7 @@ export const MerchantTable: React.FC<MerchantTableProps> = ({
   searchQuery,
   onSearchChange,
 }) => {
+  const [selectedIndustry, setSelectedIndustry] = useState<string>('ALL');
   const [selectedPillar, setSelectedPillar] = useState<string>('ALL');
   const [selectedFlag, setSelectedFlag] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
@@ -27,6 +28,12 @@ export const MerchantTable: React.FC<MerchantTableProps> = ({
   const pageSize = 25;
 
   // Filter options
+  const industries = useMemo(() => {
+    const set = new Set<string>();
+    merchants.forEach((m) => { if (m.industry?.name) set.add(m.industry.name); });
+    return Array.from(set).sort();
+  }, [merchants]);
+
   const pillars = useMemo(() => {
     const set = new Set<string>();
     merchants.forEach((m) => { if (m.subPillar) set.add(m.subPillar); });
@@ -43,6 +50,7 @@ export const MerchantTable: React.FC<MerchantTableProps> = ({
   const filteredMerchants = useMemo(() => {
     return merchants
       .filter((m) => {
+        if (selectedIndustry !== 'ALL' && m.industry?.name !== selectedIndustry) return false;
         if (selectedPillar !== 'ALL' && m.subPillar !== selectedPillar) return false;
         if (selectedFlag !== 'ALL' && m.auditFlag !== selectedFlag) return false;
         if (selectedStatus !== 'ALL' && m.augActive !== selectedStatus) return false;
@@ -54,6 +62,7 @@ export const MerchantTable: React.FC<MerchantTableProps> = ({
             m.walletNo.includes(q) ||
             m.maoName.toLowerCase().includes(q) ||
             m.district.toLowerCase().includes(q) ||
+            (m.industry?.name || '').toLowerCase().includes(q) ||
             m.subCategory.toLowerCase().includes(q);
           if (!match) return false;
         }
@@ -90,8 +99,21 @@ export const MerchantTable: React.FC<MerchantTableProps> = ({
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm space-y-4 p-5">
       {/* Search & Filters */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        {/* Dropdown Filters */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Sub Pillar Filter */}
+          {/* Industry Filter */}
+          <select
+            value={selectedIndustry}
+            onChange={(e) => { setSelectedIndustry(e.target.value); setPage(1); }}
+            className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-teal-500"
+          >
+            <option value="ALL">All Industries</option>
+            {industries.map((ind) => (
+              <option key={ind} value={ind}>{ind}</option>
+            ))}
+          </select>
+
+          {/* SubPillar Filter */}
           <select
             value={selectedPillar}
             onChange={(e) => { setSelectedPillar(e.target.value); setPage(1); }}
@@ -127,9 +149,10 @@ export const MerchantTable: React.FC<MerchantTableProps> = ({
             <option value="Zero Transacting">Zero Transacting</option>
           </select>
 
-          {(selectedPillar !== 'ALL' || selectedFlag !== 'ALL' || selectedStatus !== 'ALL' || searchQuery) && (
+          {(selectedIndustry !== 'ALL' || selectedPillar !== 'ALL' || selectedFlag !== 'ALL' || selectedStatus !== 'ALL' || searchQuery) && (
             <button
               onClick={() => {
+                setSelectedIndustry('ALL');
                 setSelectedPillar('ALL');
                 setSelectedFlag('ALL');
                 setSelectedStatus('ALL');
@@ -169,6 +192,12 @@ export const MerchantTable: React.FC<MerchantTableProps> = ({
               <th onClick={() => handleSort('merchantName')} className="p-3 cursor-pointer hover:text-white">
                 <div className="flex items-center space-x-1">
                   <span>Merchant & Wallet</span>
+                  <ArrowUpDown className="w-3 h-3" />
+                </div>
+              </th>
+              <th onClick={() => handleSort('industryName')} className="p-3 cursor-pointer hover:text-white">
+                <div className="flex items-center space-x-1">
+                  <span>Industry</span>
                   <ArrowUpDown className="w-3 h-3" />
                 </div>
               </th>
@@ -226,12 +255,17 @@ export const MerchantTable: React.FC<MerchantTableProps> = ({
                 className="hover:bg-slate-800/50 cursor-pointer transition-colors"
               >
                 <td className="p-3">
-                  <div className="font-semibold text-white truncate max-w-[220px]">{m.merchantName}</div>
+                  <div className="font-semibold text-white truncate max-w-[200px]">{m.merchantName}</div>
                   <div className="text-[11px] text-slate-400 flex items-center space-x-1">
                     <span>{m.walletNo}</span>
                     <span>•</span>
                     <span>{m.walletType} ({m.rate})</span>
                   </div>
+                </td>
+                <td className="p-3">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${m.industry?.badgeClass || 'bg-slate-800 text-slate-300'}`}>
+                    {m.industry?.name || 'General Retail'}
+                  </span>
                 </td>
                 <td className="p-3">
                   <div className="text-slate-200">{m.subPillar}</div>

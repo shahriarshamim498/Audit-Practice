@@ -16,6 +16,32 @@ export interface MerchantFlags {
   megaVolume: boolean;
 }
 
+export interface IndustryProfile {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  badgeClass: string;
+  typicalGrowthMax: number;
+  typicalTicketMin: number;
+  typicalTicketMax: number;
+  expectedDiversityRatio: number;
+  description: string;
+  auditFocus: string;
+  benchmarkRationale: string;
+}
+
+export interface IndustryAnomaly {
+  isAnomaly: boolean;
+  flags: string[];
+  reasons: string[];
+  summaryReason: string;
+  growthStatus: 'BREACH' | 'NORMAL' | 'NEW';
+  ticketStatus: 'HIGH' | 'LOW' | 'NORMAL';
+  diversityRatio: number;
+  diversityStatus: 'CONCENTRATED' | 'NORMAL';
+}
+
 export interface Merchant {
   walletNo: string;
   merchantName: string;
@@ -49,6 +75,9 @@ export interface Merchant {
   totalCC: number;
   riskScore: number;
   flags: MerchantFlags;
+  industry?: IndustryProfile;
+  industryName?: string;
+  industryAnomaly?: IndustryAnomaly;
 }
 
 export interface PortfolioStats {

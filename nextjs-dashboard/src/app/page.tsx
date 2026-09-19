@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Merchant, PortfolioStats, TabType } from '../types';
-import { calculatePortfolioStats } from '../lib/auditRules';
+import { calculatePortfolioStats, enrichMerchantsWithIndustry } from '../lib/auditRules';
 import { Header } from '../components/Header';
 import { KPICards } from '../components/KPICards';
 import { OverviewTab } from '../components/OverviewTab';
@@ -43,6 +43,7 @@ export default function DashboardPage() {
         const res = await fetch('/merchants_cleaned.json');
         const json = await res.json();
         const data: Merchant[] = json.merchants || [];
+        enrichMerchantsWithIndustry(data);
         setMerchants(data);
       } catch (err) {
         console.error('Failed to load merchant dataset:', err);

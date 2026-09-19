@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { Merchant } from '../types';
@@ -19,6 +19,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, merch
     const headers = [
       'Wallet No',
       'Merchant Name',
+      'Industry Sector',
       'Sub Pillar',
       'District',
       'Acquisition Officer',
@@ -31,6 +32,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, merch
       'Dormant Months',
       'Risk Score',
       'Audit Flag',
+      'Sector Anomaly Flag',
+      'Sector Anomaly Reasons',
       'Single Cust Risk',
       'Burst Reactivation',
       'Growth Spike',
@@ -41,6 +44,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, merch
     const rows = data.map((m) => [
       `"${m.walletNo}"`,
       `"${m.merchantName.replace(/"/g, '""')}"`,
+      `"${m.industry?.name || 'General Retail'}"`,
       `"${m.subPillar}"`,
       `"${m.district}"`,
       `"${m.maoName}"`,
@@ -53,6 +57,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, merch
       m.dormantMonths,
       m.riskScore,
       `"${m.auditFlag}"`,
+      m.industryAnomaly?.isAnomaly ? 'YES' : 'NO',
+      `"${(m.industryAnomaly?.reasons || []).join('; ').replace(/"/g, '""')}"`,
       m.flags.singleCustomerRisk ? 'YES' : 'NO',
       m.flags.burstReactivation ? 'YES' : 'NO',
       m.flags.growthSpike ? 'YES' : 'NO',

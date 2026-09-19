@@ -412,12 +412,29 @@
 
     <!-- TAB PANEL 3: ANOMALY RADAR -->
     <section id="tab-anomalies" class="tab-panel hidden space-y-4 sm:space-y-6">
+      <!-- Industry Sector Radar Bar -->
+      <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="building-2" class="w-4 h-4 text-teal-400"></i>
+            <h3 class="text-xs sm:text-sm font-bold text-white text-primary tracking-tight">Industry-Tailored Anomaly Radar</h3>
+          </div>
+          <span class="text-[11px] text-teal-400 font-semibold" id="industryFilterActiveLabel">All Industries</span>
+        </div>
+        <p class="text-[11px] text-slate-400 text-secondary leading-relaxed">
+          Filter by business model & sector baselines. Growth and volume anomalies are evaluated based on inelasticity, typical ticket size, and merchant profile.
+        </p>
+        <div class="flex flex-wrap gap-1.5 sm:gap-2 pt-1" id="industryFilterPills">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+
       <!-- Anomaly Stat Badges -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4" id="anomalyPills">
         <!-- Injected by JS -->
       </div>
 
-      <!-- Spotlight Banner (Dynamically populated for selected MAO) -->
+      <!-- Spotlight Banner (Dynamically populated for selected MAO & Industry) -->
       <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center space-x-2">
@@ -433,9 +450,12 @@
 
       <!-- Anomaly Table Wrapper -->
       <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl overflow-hidden shadow-sm">
-        <div class="p-3.5 sm:p-4 border-b border-slate-800/60 border-theme flex justify-between items-center">
-          <h2 class="text-xs sm:text-sm font-bold text-white text-primary">Anomalous Client Accounts</h2>
-          <span class="text-[11px] text-slate-400 text-secondary" id="anomalyCountLabel">Showing anomalies</span>
+        <div class="p-3.5 sm:p-4 border-b border-slate-800/60 border-theme flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div>
+            <h2 class="text-xs sm:text-sm font-bold text-white text-primary">Anomalous Client Accounts</h2>
+            <div class="text-[11px] text-slate-400 text-secondary" id="anomalySubtitleLabel">Evaluated against sector baselines & transaction spikes</div>
+          </div>
+          <span class="text-[11px] text-teal-400 font-medium px-2 py-0.5 bg-teal-500/10 border border-teal-500/20 rounded-full" id="anomalyCountLabel">Showing anomalies</span>
         </div>
         
         <!-- Responsive Table Container -->
@@ -444,12 +464,12 @@
             <thead>
               <tr class="bg-slate-950/40 table-head border-b border-slate-800/60 text-slate-400 text-secondary uppercase text-[10px] tracking-wider">
                 <th class="p-3">Wallet & Merchant</th>
+                <th class="p-3">Industry Sector</th>
                 <th class="p-3">Sub Pillar</th>
-                <th class="p-3">District</th>
                 <th class="p-3 text-right">July PA</th>
                 <th class="p-3 text-right">August PA</th>
                 <th class="p-3 text-right">MoM Growth</th>
-                <th class="p-3 text-center">Anomaly Flag</th>
+                <th class="p-3 text-center">Sector Risk & Reason</th>
                 <th class="p-3 text-center">Action</th>
               </tr>
             </thead>
@@ -568,6 +588,9 @@
         <!-- Filter Controls -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2">
+            <select id="filterIndustry" class="px-2.5 py-1.5 bg-slate-800/80 surface-input border border-slate-700/60 rounded-xl text-xs text-slate-200">
+              <option value="ALL">All Industries</option>
+            </select>
             <select id="filterPillar" class="px-2.5 py-1.5 bg-slate-800/80 surface-input border border-slate-700/60 rounded-xl text-xs text-slate-200">
               <option value="ALL">All Pillars</option>
             </select>
@@ -591,6 +614,7 @@
             <thead>
               <tr class="bg-slate-950/60 table-head border-b border-slate-800/80 text-slate-400 text-secondary uppercase text-[10px] tracking-wider select-none">
                 <th class="p-3 cursor-pointer" onclick="sortTable('merchantName')">Merchant & Wallet &#x21C5;</th>
+                <th class="p-3 cursor-pointer" onclick="sortTable('industryName')">Industry &#x21C5;</th>
                 <th class="p-3 cursor-pointer" onclick="sortTable('subPillar')">Pillar / Officer &#x21C5;</th>
                 <th class="p-3 text-right cursor-pointer" onclick="sortTable('augPA')">Aug PA (BDT) &#x21C5;</th>
                 <th class="p-3 text-right cursor-pointer" onclick="sortTable('augPC')">Aug PC &#x21C5;</th>
@@ -691,6 +715,12 @@
         <div class="space-y-2">
           <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 text-secondary">Triggered Risk Indicators</h3>
           <div class="space-y-2" id="drawerFlagsContainer"></div>
+        </div>
+
+        <!-- Industry Benchmark & Sector Surveillance -->
+        <div class="space-y-2">
+          <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 text-secondary">Industry Baseline & Sector Intelligence</h3>
+          <div id="drawerIndustryBenchmark" class="space-y-2.5"></div>
         </div>
 
         <!-- Demographics & Tenure Breakdown -->

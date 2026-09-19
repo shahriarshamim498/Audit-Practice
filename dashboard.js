@@ -7,6 +7,301 @@ let currentSortField = 'augPA';
 let isSortAsc = false;
 let currentTrendMetric = 'pa';
 let selectedGlobalMAO = 'ALL';
+let selectedIndustryFilter = 'ALL';
+
+const INDUSTRY_DEFINITIONS = {
+  HEALTHCARE: {
+    id: 'HEALTHCARE',
+    name: 'Healthcare & Pharmacy',
+    icon: 'heart-pulse',
+    color: 'emerald',
+    badgeClass: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30',
+    typicalGrowthMax: 50.0, // Specific user rule: Pharmacy demand is inelastic; >50% growth is suspicious
+    typicalTicketMin: 150,
+    typicalTicketMax: 3500,
+    expectedDiversityRatio: 0.70,
+    description: 'Retail pharmacies, clinics & diagnostic centres (Inelastic demand)',
+    auditFocus: 'Verify medicine distributor cash memos, check for prescription bulk OTC laundering or commission cash-ins.',
+    benchmarkRationale: 'Healthcare & medicine demand is inelastic. MoM growth above 50% without documented seasonal epidemics or institutional supply tenders indicates high probability of artificial invoice looping or commission gaming.'
+  },
+  EDUCATION: {
+    id: 'EDUCATION',
+    name: 'Education & Institutes',
+    icon: 'graduation-cap',
+    color: 'indigo',
+    badgeClass: 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/30',
+    typicalGrowthMax: 100.0,
+    typicalTicketMin: 500,
+    typicalTicketMax: 15000,
+    expectedDiversityRatio: 0.75,
+    description: 'Schools, madrasas, academies, coaching centres & academic publishing',
+    auditFocus: 'Verify student enrolment rolls and academic fee schedules. Check for single proxy wallet bulk-paying multiple student tuition fees.',
+    benchmarkRationale: 'Tuition and academic fees typically exhibit seasonal term spikes, but repetitive collections from a small cluster of parent/guardian wallets suggest unauthorized fee aggregation or proxy commission loops.'
+  },
+  FOOD_DINING: {
+    id: 'FOOD_DINING',
+    name: 'Food, Dining & Bakeries',
+    icon: 'utensils',
+    color: 'amber',
+    badgeClass: 'bg-amber-500/10 text-amber-400 border border-amber-500/30',
+    typicalGrowthMax: 100.0,
+    typicalTicketMin: 150,
+    typicalTicketMax: 2500,
+    expectedDiversityRatio: 0.80,
+    description: 'Restaurants, dining lounges, fast food outlets & bakeries',
+    auditFocus: 'Cross-check physical POS terminal settlement slips against register slips. Audit cashier-side card and personal bKash wallet looping.',
+    benchmarkRationale: 'Food and dining turnover is high-velocity with high unique customer turnover. Concentrated payments or overnight surges are highly anomalous for dine-in and counter food establishments.'
+  },
+  GROCERY: {
+    id: 'GROCERY',
+    name: 'Grocery & Superstores',
+    icon: 'shopping-cart',
+    color: 'lime',
+    badgeClass: 'bg-lime-500/10 text-lime-400 border border-lime-500/30',
+    typicalGrowthMax: 80.0,
+    typicalTicketMin: 100,
+    typicalTicketMax: 3500,
+    expectedDiversityRatio: 0.75,
+    description: 'Supermarket chains, daily grocery marts & general provisions',
+    auditFocus: 'Inspect POS basket tickets exceeding BDT 8,000 for informal wholesale goods diversion or grey market supplier cash-ins.',
+    benchmarkRationale: 'Retail grocery exhibits high customer count and steady basket sizes. MoM growth above 80% or large repetitive tickets indicates informal wholesale pass-through rather than standard retail commerce.'
+  },
+  ELECTRONICS: {
+    id: 'ELECTRONICS',
+    name: 'Electronics & Gadgets',
+    icon: 'smartphone',
+    color: 'cyan',
+    badgeClass: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30',
+    typicalGrowthMax: 200.0,
+    typicalTicketMin: 1500,
+    typicalTicketMax: 50000,
+    expectedDiversityRatio: 0.60,
+    description: 'Consumer electronics, smartphones, computers & telecom devices',
+    auditFocus: 'Verify device IMEI/serial number sales registers. Screen for smurfing/micro-structuring (<BDT 250 tickets) or grey market mobile phone trade.',
+    benchmarkRationale: 'Electronics tickets are naturally high-value. High transaction volume with micro-ticket sizes (<BDT 250) is an AML indicator for structuring, cash-out diversion, or fee bypass.'
+  },
+  FASHION: {
+    id: 'FASHION',
+    name: 'Fashion & Lifestyle',
+    icon: 'shirt',
+    color: 'purple',
+    badgeClass: 'bg-purple-500/10 text-purple-400 border border-purple-500/30',
+    typicalGrowthMax: 120.0,
+    typicalTicketMin: 500,
+    typicalTicketMax: 6000,
+    expectedDiversityRatio: 0.70,
+    description: 'Apparel stores, boutique fashion, footwear, lifestyle & jewellery',
+    auditFocus: 'Compare sales dates against national festival shopping calendar (Eid/Puja). Check for artificial inventory clearing transactions.',
+    benchmarkRationale: 'Apparel follows distinct festival seasonality. In the absence of major national festivals in August, extreme MoM volume jumps warrant inventory and bank settlement audit.'
+  },
+  DIGITAL_SERVICES: {
+    id: 'DIGITAL_SERVICES',
+    name: 'Digital & E-Commerce',
+    icon: 'globe',
+    color: 'blue',
+    badgeClass: 'bg-blue-500/10 text-blue-400 border border-blue-500/30',
+    typicalGrowthMax: 250.0,
+    typicalTicketMin: 200,
+    typicalTicketMax: 20000,
+    expectedDiversityRatio: 0.50,
+    description: 'Online merchants, IT solutions, travel services, courier & digital platforms',
+    auditFocus: 'Verify platform server transaction logs, domain SSL ownership, API checkout webhook validity, and parcel courier delivery proof.',
+    benchmarkRationale: 'E-commerce can scale rapidly, but digital transactions without associated shipment tracking or software subscription proof risk being used for unauthorized fund transfer.'
+  },
+  GENERAL_RETAIL: {
+    id: 'GENERAL_RETAIL',
+    name: 'General Retail & Services',
+    icon: 'store',
+    color: 'slate',
+    badgeClass: 'bg-slate-500/10 text-slate-300 border border-slate-500/30',
+    typicalGrowthMax: 250.0,
+    typicalTicketMin: 100,
+    typicalTicketMax: 10000,
+    expectedDiversityRatio: 0.65,
+    description: 'General merchant retail & mixed trading businesses',
+    auditFocus: 'Standard merchant audit: verify trade license validity, storefront operational status, and monthly sales register reconciliation.',
+    benchmarkRationale: 'General retail requires standard merchant reconciliation against point-of-sale volume and local trading norms.'
+  }
+};
+
+function getMerchantIndustry(m) {
+  const name = (m.merchantName || '').toLowerCase();
+  const subCat = (m.subCategory || '').toLowerCase();
+  const subPillar = (m.subPillar || '').toLowerCase();
+
+  // 1. Healthcare & Pharmacy (Top priority for user)
+  if (
+    /pharmacy|hospital|diagnostic|medical|health/.test(subCat) ||
+    /pharma|medicine|drug|hospital|diagnostic|health|clinic|doctor|cure|medico|ayurved|herbal|dental|physio|remedy|chemi/.test(name)
+  ) {
+    return INDUSTRY_DEFINITIONS.HEALTHCARE;
+  }
+
+  // 2. Education & Institutes
+  if (
+    /coaching|training|college|school|national curriculum|education/.test(subCat) ||
+    /academy|school|college|madrasa|university|vidyapith|education|coaching|training|admission|institute|prokashon|publication|tuition|learning|pioneer|polytechnic/.test(name)
+  ) {
+    return INDUSTRY_DEFINITIONS.EDUCATION;
+  }
+
+  // 3. Food, Dining & Bakeries
+  if (
+    /restaurant|bakery|fast food|dining/.test(subCat) ||
+    /restaurant|cafe|dining|kitchen|kabab|biryani|pizza|coffee|bakery|sweets|fast food|food|burger|tea|lounge|catering|chabaw|bakers/.test(name)
+  ) {
+    return INDUSTRY_DEFINITIONS.FOOD_DINING;
+  }
+
+  // 4. Grocery & Superstores
+  if (
+    /superstore|department|grocery/.test(subCat) ||
+    (/superstore|grocery|mart|bazaar|confectionery|provisions|store|stores|general store/.test(name) &&
+     !/jewellers|fashion|clothing|telecom/.test(name))
+  ) {
+    return INDUSTRY_DEFINITIONS.GROCERY;
+  }
+
+  // 5. Electronics & Gadgets
+  if (
+    /mobile|appliance|accessories|electronics/.test(subCat) ||
+    /gadget|mobile|electronics|telecom|app store|tech|computer|phone|device|hardware|welburg|telecom/.test(name)
+  ) {
+    return INDUSTRY_DEFINITIONS.ELECTRONICS;
+  }
+
+  // 6. Fashion & Lifestyle
+  if (
+    /apparel|footwear|gifts|personal care|fashion/.test(subCat) ||
+    /fashion|clothing|tailor|boutique|textile|poshaak|wear|lifestyle|shoes|collection|fabrics|jewellers|smart collection|watch|cosmetics/.test(name)
+  ) {
+    return INDUSTRY_DEFINITIONS.FASHION;
+  }
+
+  // 7. Digital, E-Commerce & Services
+  if (
+    /e-commerce|online|content|service|digital/.test(subCat) ||
+    /it limited|software|digital|media|automation|travel|agency|express|courier|enterprise|travella|technolog/.test(name)
+  ) {
+    return INDUSTRY_DEFINITIONS.DIGITAL_SERVICES;
+  }
+
+  return INDUSTRY_DEFINITIONS.GENERAL_RETAIL;
+}
+
+function assessIndustryAnomaly(m, ind) {
+  const reasons = [];
+  const flags = [];
+  let isAnomaly = false;
+
+  // Metric 1: Sector-Tailored MoM Growth Ceiling
+  // (e.g. Pharmacy MoM >50% is suspicious as inelastic demand does not randomly jump >50%)
+  if (m.growth >= ind.typicalGrowthMax && m.augPA >= 5000 && !m.isNewGrowth) {
+    isAnomaly = true;
+    flags.push('SURGE_CEILING');
+    reasons.push(`${ind.name} MoM surge (+${m.growth.toFixed(1)}%) exceeds sector baseline ceiling (+${ind.typicalGrowthMax}%)`);
+  }
+
+  // Metric 2: Pharmacy specific bulk ticket or looping
+  if (ind.id === 'HEALTHCARE') {
+    if (m.avgTicketSize >= 5000 && m.augPC >= 5) {
+      isAnomaly = true;
+      flags.push('HEALTHCARE_BULK_TICKET');
+      reasons.push(`Unusually large avg ticket (${formatBDT(m.avgTicketSize)}) for retail medicine dispensing`);
+    }
+    if (m.augPC >= 10 && m.augCC <= 3) {
+      isAnomaly = true;
+      flags.push('HEALTHCARE_LOOPING');
+      reasons.push(`Pharmacy customer looping: ${m.augPC} txns concentrated in only ${m.augCC} customer(s)`);
+    }
+  }
+
+  // Metric 3: Education tuition proxy pooling
+  if (ind.id === 'EDUCATION') {
+    if (m.augPC >= 8 && (m.augPC / Math.max(1, m.augCC)) >= 3.5) {
+      isAnomaly = true;
+      flags.push('TUITION_PROXY_POOLING');
+      reasons.push(`Tuition proxy looping: ${m.augPC} tuition transactions paid by only ${m.augCC} wallets`);
+    }
+    if (m.avgTicketSize >= 20000 && m.augPC >= 5) {
+      isAnomaly = true;
+      flags.push('TUITION_MEGA_TICKET');
+      reasons.push(`Avg ticket (${formatBDT(m.avgTicketSize)}) exceeds typical academic term fee baseline`);
+    }
+  }
+
+  // Metric 4: Food & Dining counter loop
+  if (ind.id === 'FOOD_DINING') {
+    if (m.augPC >= 15 && m.augCC <= 3) {
+      isAnomaly = true;
+      flags.push('DINING_COUNTER_LOOP');
+      reasons.push(`Dining counter looping: ${m.augPC} dining bills paid by only ${m.augCC} wallet(s)`);
+    }
+  }
+
+  // Metric 5: Grocery wholesale pass-through
+  if (ind.id === 'GROCERY') {
+    if (m.avgTicketSize >= 8000 && m.augPC >= 5) {
+      isAnomaly = true;
+      flags.push('GROCERY_BULK_PASS_THROUGH');
+      reasons.push(`Unusually high avg grocery ticket (${formatBDT(m.avgTicketSize)}) indicates wholesale diversion`);
+    }
+  }
+
+  // Metric 6: Electronics micro-structuring or smurfing
+  if (ind.id === 'ELECTRONICS') {
+    if (m.avgTicketSize < 250 && m.augPC >= 15) {
+      isAnomaly = true;
+      flags.push('TECH_MICRO_STRUCTURING');
+      reasons.push(`Micro-structuring in electronics: Avg ticket ${formatBDT(m.avgTicketSize)} across ${m.augPC} transactions`);
+    }
+  }
+
+  // Also include general macro anomalies (megaVolume, cliffDrop, growthSpike >300%)
+  if (m.flags && (m.flags.megaVolume || m.flags.cliffDrop || m.flags.growthSpike)) {
+    isAnomaly = true;
+    if (m.flags.megaVolume) reasons.push(`Mega-Volume Outlier (${formatBDT(m.augPA)} Aug / ${formatBDT(m.totalPA)} total)`);
+    if (m.flags.cliffDrop) reasons.push(`Cliff-edge dropout: July ${formatBDT(m.monthly[6]?.pa || 0)} dropped to BDT 0 in August`);
+    if (m.flags.growthSpike && !flags.includes('SURGE_CEILING')) reasons.push(`Extreme MoM growth spike (+${m.growth.toFixed(1)}%)`);
+  }
+
+  // Benchmark status evaluation for the 3 key pillars
+  const growthStatus = m.isNewGrowth
+    ? 'NEW'
+    : m.growth > ind.typicalGrowthMax
+    ? 'BREACH'
+    : 'NORMAL';
+
+  const ticketStatus = m.avgTicketSize > ind.typicalTicketMax
+    ? 'HIGH'
+    : m.avgTicketSize < ind.typicalTicketMin && m.augPC >= 10
+    ? 'LOW'
+    : 'NORMAL';
+
+  const diversityRatio = m.augPC > 0 ? (m.augCC / m.augPC) : 1;
+  const diversityStatus = diversityRatio < ind.expectedDiversityRatio && m.augPC >= 8
+    ? 'CONCENTRATED'
+    : 'NORMAL';
+
+  return {
+    isAnomaly,
+    flags,
+    reasons,
+    summaryReason: reasons[0] || 'Normal transaction velocity for sector',
+    growthStatus,
+    ticketStatus,
+    diversityRatio,
+    diversityStatus
+  };
+}
+
+function enrichMerchantsWithIndustry(list) {
+  list.forEach(m => {
+    m.industry = getMerchantIndustry(m);
+    m.industryName = m.industry.name;
+    m.industryAnomaly = assessIndustryAnomaly(m, m.industry);
+  });
+}
 
 function getActiveMerchants() {
   if (selectedGlobalMAO === 'ALL') return merchants;
@@ -100,6 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initDashboard() {
+  enrichMerchantsWithIndustry(merchants);
   applyTheme(currentTheme);
   initGlobalMAOFilter();
   initExplorerFilters();
@@ -569,28 +865,80 @@ function selectMAOFromList(mao) {
   refreshAllDashboardViews();
 }
 
+function setIndustryAnomalyFilter(indId) {
+  selectedIndustryFilter = indId;
+  renderAnomalyView();
+}
+
 function renderAnomalyView() {
   const list = getActiveMerchants();
-  const growthSpikes = list.filter(m => m.flags.growthSpike);
-  const megaVolume = list.filter(m => m.flags.megaVolume);
-  const cliffDrops = list.filter(m => m.flags.cliffDrop);
+
+  // All anomalous merchants under active MAO filter
+  const allAnomaliesInActive = list.filter(m => m.industryAnomaly && m.industryAnomaly.isAnomaly);
+
+  // Calculate anomaly counts per sector
+  const sectorCounts = { ALL: allAnomaliesInActive.length };
+  Object.keys(INDUSTRY_DEFINITIONS).forEach(k => { sectorCounts[k] = 0; });
+  allAnomaliesInActive.forEach(m => {
+    if (m.industry && sectorCounts[m.industry.id] !== undefined) {
+      sectorCounts[m.industry.id]++;
+    }
+  });
+
+  // Render Industry Sector Radar Filter Pills
+  const pillsContainer = document.getElementById('industryFilterPills');
+  if (pillsContainer) {
+    const pillKeys = ['ALL', 'HEALTHCARE', 'EDUCATION', 'FOOD_DINING', 'GROCERY', 'ELECTRONICS', 'FASHION', 'DIGITAL_SERVICES', 'GENERAL_RETAIL'];
+    pillsContainer.innerHTML = pillKeys.map(k => {
+      const isAll = k === 'ALL';
+      const label = isAll ? 'All Industries' : INDUSTRY_DEFINITIONS[k].name;
+      const count = sectorCounts[k] || 0;
+      const isSelected = selectedIndustryFilter === k;
+      const activeClass = isSelected
+        ? 'bg-teal-500/20 text-teal-300 border-teal-500/60 shadow-sm'
+        : 'bg-slate-800/60 text-slate-400 hover:text-white hover:bg-slate-800 border-slate-700/60';
+
+      return `
+        <button onclick="setIndustryAnomalyFilter('${k}')" class="px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all flex items-center space-x-1.5 ${activeClass}">
+          <span>${label}</span>
+          <span class="px-1.5 py-0.2 rounded-full text-[10px] ${isSelected ? 'bg-teal-500/30 text-teal-200' : 'bg-slate-900/60 text-slate-400'}">${count}</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  const activeLabel = document.getElementById('industryFilterActiveLabel');
+  if (activeLabel) {
+    activeLabel.innerText = selectedIndustryFilter === 'ALL'
+      ? 'All Industries Active'
+      : `Filtered: ${INDUSTRY_DEFINITIONS[selectedIndustryFilter]?.name || selectedIndustryFilter}`;
+  }
+
+  // Filter anomalies based on selected industry
+  const anomalyList = selectedIndustryFilter === 'ALL'
+    ? allAnomaliesInActive
+    : allAnomaliesInActive.filter(m => m.industry && m.industry.id === selectedIndustryFilter);
+
+  const growthSurges = anomalyList.filter(m => (m.growth >= (m.industry?.typicalGrowthMax || 100) && m.augPA >= 5000 && !m.isNewGrowth) || m.flags.growthSpike);
+  const megaOutliers = anomalyList.filter(m => m.flags.megaVolume);
+  const cliffDrops = anomalyList.filter(m => m.flags.cliffDrop);
 
   document.getElementById('anomalyPills').innerHTML = `
     <div class="p-4 rounded-xl border bg-amber-950/20 border-amber-500/50 shadow-sm">
       <div class="flex items-center justify-between mb-1">
-        <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider">Growth Spikes (>300%)</span>
+        <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider">Sector Growth Surges</span>
         <i data-lucide="trending-up" class="w-4 h-4 text-amber-400"></i>
       </div>
-      <div class="text-2xl font-bold text-white">${growthSpikes.length} Accounts</div>
-      <p class="text-xs text-slate-400 mt-1">Sudden extreme MoM acceleration</p>
+      <div class="text-2xl font-bold text-white">${growthSurges.length} Accounts</div>
+      <p class="text-xs text-slate-400 mt-1">Exceeds industry normal growth ceiling</p>
     </div>
     <div class="p-4 rounded-xl border bg-cyan-950/20 border-cyan-500/50 shadow-sm">
       <div class="flex items-center justify-between mb-1">
         <span class="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Mega-Volume Entities</span>
         <i data-lucide="dollar-sign" class="w-4 h-4 text-cyan-400"></i>
       </div>
-      <div class="text-2xl font-bold text-white">${megaVolume.length} Accounts</div>
-      <p class="text-xs text-slate-400 mt-1">>BDT 5M in Aug or >BDT 10M total</p>
+      <div class="text-2xl font-bold text-white">${megaOutliers.length} Accounts</div>
+      <p class="text-xs text-slate-400 mt-1">>BDT 5M in Aug or >BDT 10M total volume</p>
     </div>
     <div class="p-4 rounded-xl border bg-rose-950/20 border-rose-500/50 shadow-sm">
       <div class="flex items-center justify-between mb-1">
@@ -602,60 +950,56 @@ function renderAnomalyView() {
     </div>
   `;
 
-  // Dynamic Spotlight strictly for selected MAO
+  // Dynamic Spotlight strictly for selected MAO & Industry
   const officerLabel = document.getElementById('anomalySpotlightOfficerLabel');
   if (officerLabel) {
-    officerLabel.innerText = selectedGlobalMAO === 'ALL' ? 'All Officers' : `Officer: ${selectedGlobalMAO}`;
+    const maoStr = selectedGlobalMAO === 'ALL' ? 'All Officers' : selectedGlobalMAO;
+    const indStr = selectedIndustryFilter === 'ALL' ? 'All Sectors' : INDUSTRY_DEFINITIONS[selectedIndustryFilter]?.name;
+    officerLabel.innerText = `${maoStr} • ${indStr}`;
   }
 
   const spotlightContainer = document.getElementById('anomalySpotlightCards');
   if (spotlightContainer) {
-    const topAnomalies = [...list]
-      .filter(m => m.flags.growthSpike || m.flags.megaVolume || m.flags.cliffDrop)
+    const topAnomalies = [...anomalyList]
       .sort((a, b) => (b.growth || 0) - (a.growth || 0) || b.augPA - a.augPA)
       .slice(0, 2);
 
     if (topAnomalies.length === 0) {
       spotlightContainer.innerHTML = `
         <div class="col-span-1 md:col-span-2 p-4 bg-slate-800/40 surface-subtle border border-slate-700/60 rounded-xl text-center text-slate-400 text-xs">
-          No extreme anomaly cases detected for <strong>${selectedGlobalMAO === 'ALL' ? 'the portfolio' : selectedGlobalMAO}</strong>.
+          No industry anomaly triggers detected for <strong>${selectedGlobalMAO === 'ALL' ? 'the portfolio' : selectedGlobalMAO}</strong> in <strong>${selectedIndustryFilter === 'ALL' ? 'any sector' : INDUSTRY_DEFINITIONS[selectedIndustryFilter]?.name}</strong>.
         </div>
       `;
     } else {
       spotlightContainer.innerHTML = topAnomalies.map(m => {
-        let tag = 'Growth Spike';
-        let tagColor = 'bg-amber-500/10 text-amber-300 border-amber-500/30';
-        let desc = `Surged +${m.isNewGrowth ? 'New' : formatPercent(m.growth)} MoM to ${formatBDT(m.augPA)} across ${formatNumber(m.augPC)} transactions.`;
-        if (m.flags.megaVolume) {
-          tag = 'Mega Volume';
-          tagColor = 'bg-teal-500/10 text-teal-300 border-teal-500/30';
-          desc = `Processed ${formatBDT(m.augPA)} in August across ${formatNumber(m.augPC)} transactions (${formatBDT(m.totalPA)} total volume).`;
-        } else if (m.flags.cliffDrop) {
-          tag = 'Cliff Drop';
-          tagColor = 'bg-rose-500/10 text-rose-300 border-rose-500/30';
-          desc = `July volume (${formatBDT(m.monthly[6]?.pa || 0)}) dropped to BDT 0 in August. Requires immediate churn review.`;
-        }
+        const ind = m.industry || INDUSTRY_DEFINITIONS.GENERAL_RETAIL;
+        const mainReason = m.industryAnomaly?.reasons?.[0] || 'Unusual sector pattern detected';
+        let tag = ind.name;
+        let tagColor = ind.badgeClass;
+
+        let desc = `${mainReason}. August Turnover: ${formatBDT(m.augPA)} across ${formatNumber(m.augPC)} txns (Avg Ticket: ${formatBDT(m.avgTicketSize)}).`;
+
         return `
           <div class="p-3.5 bg-slate-800/40 surface-subtle border border-slate-700/60 rounded-xl cursor-pointer hover:border-teal-500/60 transition-colors" onclick="inspectWallet('${m.walletNo}')">
-            <div class="flex justify-between items-start mb-1">
+            <div class="flex justify-between items-start mb-1 gap-2">
               <span class="font-bold text-teal-400 text-sm truncate max-w-[220px]">${m.merchantName}</span>
-              <span class="px-2 py-0.5 ${tagColor} border rounded-full font-semibold text-[10px] shrink-0">${tag}</span>
+              <span class="px-2 py-0.5 ${tagColor} rounded-full font-semibold text-[10px] shrink-0">${tag}</span>
             </div>
-            <div class="text-[10px] text-slate-400 font-mono mb-1">${m.walletNo} • MAO: ${m.maoName}</div>
-            <p class="text-slate-300 text-secondary text-[11px] mt-1 leading-relaxed">${desc}</p>
+            <div class="text-[10px] text-slate-400 font-mono mb-1.5">${m.walletNo} • MAO: ${m.maoName}</div>
+            <div class="p-2 bg-slate-900/60 rounded-lg text-amber-300/90 text-[11px] leading-relaxed border border-amber-500/20 mb-1">
+              ⚠️ ${mainReason}
+            </div>
+            <p class="text-slate-400 text-[10px] mt-1">${desc}</p>
           </div>
         `;
       }).join('');
     }
   }
 
-  // Strictly filter anomaly table to active list
-  const anomalyList = list.filter(m => m.flags.growthSpike || m.flags.megaVolume || m.flags.cliffDrop);
+  // Anomaly Table
   const countLabel = document.getElementById('anomalyCountLabel');
   if (countLabel) {
-    countLabel.innerText = selectedGlobalMAO === 'ALL'
-      ? `Showing ${anomalyList.length} anomalies across all officers`
-      : `Showing ${anomalyList.length} anomalies for ${selectedGlobalMAO}`;
+    countLabel.innerText = `Showing ${anomalyList.length} anomalies`;
   }
 
   const tableBody = document.getElementById('anomalyTableBody');
@@ -663,38 +1007,47 @@ function renderAnomalyView() {
     tableBody.innerHTML = `
       <tr>
         <td colspan="8" class="p-6 text-center text-slate-400 text-xs">
-          No anomalous accounts found for ${selectedGlobalMAO === 'ALL' ? 'this portfolio' : selectedGlobalMAO}.
+          No anomalous accounts found for ${selectedGlobalMAO === 'ALL' ? 'this portfolio' : selectedGlobalMAO} under ${selectedIndustryFilter === 'ALL' ? 'current filters' : INDUSTRY_DEFINITIONS[selectedIndustryFilter]?.name}.
         </td>
       </tr>
     `;
   } else {
-    tableBody.innerHTML = anomalyList.slice(0, 50).map(m => `
-      <tr class="hover:bg-slate-800/40 table-row transition-colors">
-        <td class="p-3">
-          <div class="font-semibold text-white text-primary truncate max-w-[200px]">${m.merchantName}</div>
-          <div class="text-[11px] text-slate-400 font-mono">${m.walletNo}</div>
-        </td>
-        <td class="p-3 text-slate-300 text-secondary">${m.subPillar}</td>
-        <td class="p-3 text-slate-300 text-secondary">${m.district}</td>
-        <td class="p-3 text-right text-slate-300 text-secondary">${formatBDT(m.monthly[6]?.pa || 0)}</td>
-        <td class="p-3 text-right font-bold text-white text-primary">${formatBDT(m.augPA)}</td>
-        <td class="p-3 text-right font-bold ${m.growth >= 100 ? 'text-amber-400' : 'text-slate-300'}">
-          ${m.isNewGrowth ? 'New' : formatPercent(m.growth)}
-        </td>
-        <td class="p-3 text-center">
-          <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${
-            m.flags.megaVolume ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
-            m.flags.cliffDrop ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-            'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-          }">
-            ${m.flags.megaVolume ? 'Mega Volume' : m.flags.cliffDrop ? 'Cliff Drop' : 'Growth Spike'}
-          </span>
-        </td>
-        <td class="p-3 text-center">
-          <button onclick="inspectWallet('${m.walletNo}')" class="text-teal-400 hover:underline font-medium">Inspect</button>
-        </td>
-      </tr>
-    `).join('');
+    tableBody.innerHTML = anomalyList.slice(0, 50).map(m => {
+      const ind = m.industry || INDUSTRY_DEFINITIONS.GENERAL_RETAIL;
+      const mainReason = m.industryAnomaly?.reasons?.[0] || 'Unusual sector pattern';
+      const isSurge = m.growth >= ind.typicalGrowthMax;
+
+      return `
+        <tr class="hover:bg-slate-800/40 table-row transition-colors">
+          <td class="p-3">
+            <div class="font-semibold text-white text-primary truncate max-w-[200px]">${m.merchantName}</div>
+            <div class="text-[11px] text-slate-400 font-mono">${m.walletNo}</div>
+          </td>
+          <td class="p-3">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${ind.badgeClass}">
+              ${ind.name}
+            </span>
+          </td>
+          <td class="p-3 text-slate-300 text-secondary">${m.subPillar}</td>
+          <td class="p-3 text-right text-slate-300 text-secondary">${formatBDT(m.monthly[6]?.pa || 0)}</td>
+          <td class="p-3 text-right font-bold text-white text-primary">${formatBDT(m.augPA)}</td>
+          <td class="p-3 text-right font-bold ${isSurge ? 'text-amber-400' : 'text-slate-300'}">
+            ${m.isNewGrowth ? 'New' : formatPercent(m.growth)}
+          </td>
+          <td class="p-3">
+            <div class="text-[11px] font-medium text-amber-300/90 max-w-[260px] truncate" title="${mainReason}">
+              ${mainReason}
+            </div>
+            <div class="text-[10px] text-slate-500 font-mono mt-0.5">
+              Sector Ceiling: &le;+${ind.typicalGrowthMax}% • Ticket: BDT ${ind.typicalTicketMin}-${ind.typicalTicketMax}
+            </div>
+          </td>
+          <td class="p-3 text-center">
+            <button onclick="inspectWallet('${m.walletNo}')" class="text-teal-400 hover:underline font-medium">Audit 360</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
   if (window.lucide) window.lucide.createIcons();
@@ -911,6 +1264,14 @@ function initExplorerFilters() {
     if (m.auditFlag) fSet.add(m.auditFlag);
   });
 
+  const indSelect = document.getElementById('filterIndustry');
+  if (indSelect) {
+    indSelect.innerHTML = '<option value="ALL">All Industries</option>';
+    Object.values(INDUSTRY_DEFINITIONS).forEach(ind => {
+      indSelect.innerHTML += `<option value="${ind.id}">${ind.name}</option>`;
+    });
+  }
+
   const pSelect = document.getElementById('filterPillar');
   Array.from(pSet).sort().forEach(p => { pSelect.innerHTML += `<option value="${p}">${p}</option>`; });
 
@@ -919,6 +1280,8 @@ function initExplorerFilters() {
 }
 
 function applyExplorerFilters() {
+  const indSelect = document.getElementById('filterIndustry');
+  const industry = indSelect ? indSelect.value : 'ALL';
   const pillar = document.getElementById('filterPillar').value;
   const flag = document.getElementById('filterFlag').value;
   const status = document.getElementById('filterStatus').value;
@@ -926,6 +1289,7 @@ function applyExplorerFilters() {
   const baseList = getActiveMerchants();
 
   filteredExplorerMerchants = baseList.filter(m => {
+    if (industry !== 'ALL' && m.industry && m.industry.id !== industry) return false;
     if (pillar !== 'ALL' && m.subPillar !== pillar) return false;
     if (flag !== 'ALL' && m.auditFlag !== flag) return false;
     if (status !== 'ALL' && m.augActive !== status) return false;
@@ -933,6 +1297,7 @@ function applyExplorerFilters() {
       const match = m.merchantName.toLowerCase().includes(q) ||
                     m.walletNo.includes(q) ||
                     m.maoName.toLowerCase().includes(q) ||
+                    (m.industry && m.industry.name.toLowerCase().includes(q)) ||
                     m.district.toLowerCase().includes(q);
       if (!match) return false;
     }
@@ -976,38 +1341,46 @@ function renderExplorerTable() {
   document.getElementById('btnPrevPage').disabled = currentExplorerPage <= 1;
   document.getElementById('btnNextPage').disabled = currentExplorerPage >= totalPages;
 
-  const html = pageItems.map(m => `
-    <tr onclick="inspectWallet('${m.walletNo}')" class="hover:bg-slate-800/50 cursor-pointer transition-colors">
-      <td class="p-3">
-        <div class="font-semibold text-white truncate max-w-[220px]">${m.merchantName}</div>
-        <div class="text-[11px] text-slate-400">${m.walletNo} • ${m.walletType} (${m.rate})</div>
-      </td>
-      <td class="p-3">
-        <div class="text-slate-200">${m.subPillar}</div>
-        <div class="text-[11px] text-slate-400">${m.maoName}</div>
-      </td>
-      <td class="p-3 text-right font-bold text-white">${formatBDT(m.augPA)}</td>
-      <td class="p-3 text-right text-slate-300 font-mono">${formatNumber(m.augPC)}</td>
-      <td class="p-3 text-right text-slate-300 font-mono">${formatBDT(m.avgTicketSize)}</td>
-      <td class="p-3 text-right font-semibold ${m.growth > 0 ? 'text-teal-400' : 'text-slate-400'}">
-        ${m.isNewGrowth ? 'New' : formatPercent(m.growth)}
-      </td>
-      <td class="p-3 text-center text-slate-300 font-semibold">${m.dormantMonths} mos</td>
-      <td class="p-3 text-center">
-        <span class="px-2 py-0.5 rounded-full font-bold text-[10px] border ${
-          m.riskScore >= 50 ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
-          m.riskScore >= 30 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
-          'bg-teal-500/20 text-teal-300 border-teal-500/40'
-        }">${m.riskScore}</span>
-      </td>
-      <td class="p-3">
-        <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300">${m.auditFlag}</span>
-      </td>
-      <td class="p-3 text-center">
-        <span class="text-teal-400 font-medium text-xs hover:underline">360 &rarr;</span>
-      </td>
-    </tr>
-  `).join('');
+  const html = pageItems.map(m => {
+    const ind = m.industry || INDUSTRY_DEFINITIONS.GENERAL_RETAIL;
+    return `
+      <tr onclick="inspectWallet('${m.walletNo}')" class="hover:bg-slate-800/50 cursor-pointer transition-colors">
+        <td class="p-3">
+          <div class="font-semibold text-white truncate max-w-[200px]">${m.merchantName}</div>
+          <div class="text-[11px] text-slate-400">${m.walletNo} • ${m.walletType} (${m.rate})</div>
+        </td>
+        <td class="p-3">
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${ind.badgeClass}">
+            ${ind.name}
+          </span>
+        </td>
+        <td class="p-3">
+          <div class="text-slate-200">${m.subPillar}</div>
+          <div class="text-[11px] text-slate-400">${m.maoName}</div>
+        </td>
+        <td class="p-3 text-right font-bold text-white">${formatBDT(m.augPA)}</td>
+        <td class="p-3 text-right text-slate-300 font-mono">${formatNumber(m.augPC)}</td>
+        <td class="p-3 text-right text-slate-300 font-mono">${formatBDT(m.avgTicketSize)}</td>
+        <td class="p-3 text-right font-semibold ${m.growth > 0 ? 'text-teal-400' : 'text-slate-400'}">
+          ${m.isNewGrowth ? 'New' : formatPercent(m.growth)}
+        </td>
+        <td class="p-3 text-center text-slate-300 font-semibold">${m.dormantMonths} mos</td>
+        <td class="p-3 text-center">
+          <span class="px-2 py-0.5 rounded-full font-bold text-[10px] border ${
+            m.riskScore >= 50 ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
+            m.riskScore >= 30 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+            'bg-teal-500/20 text-teal-300 border-teal-500/40'
+          }">${m.riskScore}</span>
+        </td>
+        <td class="p-3">
+          <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300">${m.auditFlag}</span>
+        </td>
+        <td class="p-3 text-center">
+          <span class="text-teal-400 font-medium text-xs hover:underline">360 &rarr;</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
   document.getElementById('explorerTableBody').innerHTML = html;
 }
 
@@ -1124,6 +1497,109 @@ function inspectWallet(walletNo) {
   }
   document.getElementById('drawerFlagsContainer').innerHTML = flagsHtml;
 
+  // Render Industry Benchmark & Sector Surveillance in Drawer
+  const ind = m.industry || INDUSTRY_DEFINITIONS.GENERAL_RETAIL;
+  const indAnom = m.industryAnomaly || { isAnomaly: false, reasons: [], growthStatus: 'NORMAL', ticketStatus: 'NORMAL', diversityStatus: 'NORMAL' };
+
+  const benchContainer = document.getElementById('drawerIndustryBenchmark');
+  if (benchContainer) {
+    const isSurgeBreach = m.growth > ind.typicalGrowthMax && !m.isNewGrowth;
+    const isTicketAnomaly = m.avgTicketSize > ind.typicalTicketMax || (m.avgTicketSize < ind.typicalTicketMin && m.augPC >= 10);
+    const isDiversityAnom = indAnom.diversityStatus === 'CONCENTRATED';
+
+    benchContainer.innerHTML = `
+      <div class="bg-slate-800/40 surface-subtle border border-slate-800/80 rounded-xl p-3.5 space-y-3">
+        <!-- Sector Header -->
+        <div class="flex items-start justify-between">
+          <div class="space-y-0.5">
+            <div class="flex items-center space-x-2">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${ind.badgeClass}">
+                ${ind.name}
+              </span>
+              <span class="text-[10px] text-slate-400 font-mono">Matched by SubCategory & Name Pattern</span>
+            </div>
+            <p class="text-[11px] text-slate-300 text-secondary pt-1 leading-relaxed">${ind.description}</p>
+          </div>
+        </div>
+
+        <!-- 3-Pillar Benchmark Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          <!-- 1. MoM Growth vs Sector Baseline -->
+          <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800 space-y-1">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">MoM Growth Ceiling</span>
+            <div class="flex items-baseline justify-between">
+              <span class="font-bold text-white">${m.isNewGrowth ? 'New' : formatPercent(m.growth)}</span>
+              <span class="text-[10px] text-slate-400">&le;+${ind.typicalGrowthMax}% max</span>
+            </div>
+            <div>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                m.isNewGrowth ? 'bg-slate-800 text-slate-300' :
+                isSurgeBreach ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                'bg-emerald-500/20 text-emerald-300'
+              }">
+                ${m.isNewGrowth ? 'Onboarding' : isSurgeBreach ? '⚠️ Surge Breach' : '✅ Baseline Compliant'}
+              </span>
+            </div>
+          </div>
+
+          <!-- 2. Avg Ticket vs Expected Range -->
+          <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800 space-y-1">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ticket Range</span>
+            <div class="flex items-baseline justify-between">
+              <span class="font-bold text-white">${formatBDT(m.avgTicketSize)}</span>
+              <span class="text-[10px] text-slate-400">${formatNumber(ind.typicalTicketMin)}-${formatNumber(ind.typicalTicketMax)}</span>
+            </div>
+            <div>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                isTicketAnomaly ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300'
+              }">
+                ${isTicketAnomaly ? '⚠️ Out of Range' : '✅ Standard Ticket'}
+              </span>
+            </div>
+          </div>
+
+          <!-- 3. Customer Diversity (Ratio) -->
+          <div class="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800 space-y-1">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer Diversity</span>
+            <div class="flex items-baseline justify-between">
+              <span class="font-bold text-white">${m.augPC > 0 ? Math.round((m.augCC / m.augPC) * 100) : 0}%</span>
+              <span class="text-[10px] text-slate-400">&ge;${Math.round(ind.expectedDiversityRatio * 100)}% target</span>
+            </div>
+            <div>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                isDiversityAnom ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300'
+              }">
+                ${isDiversityAnom ? '⚠️ Concentrated' : '✅ Organic Ratio'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Risk Rationale / Audit Explanation -->
+        <div class="p-2.5 bg-slate-900/70 border ${indAnom.isAnomaly ? 'border-amber-500/30 bg-amber-950/10' : 'border-slate-800'} rounded-lg text-xs space-y-1">
+          <div class="font-bold ${indAnom.isAnomaly ? 'text-amber-400' : 'text-slate-300'} flex items-center space-x-1.5">
+            <i data-lucide="${indAnom.isAnomaly ? 'alert-triangle' : 'info'}" class="w-3.5 h-3.5"></i>
+            <span>Sector Audit Rationale</span>
+          </div>
+          <p class="text-[11px] text-slate-300 text-secondary leading-relaxed">
+            ${ind.benchmarkRationale}
+          </p>
+          ${indAnom.isAnomaly ? `
+            <div class="mt-1.5 pt-1.5 border-t border-amber-500/20 text-[11px] text-amber-200">
+              <strong>Triggered Sector Exception:</strong> ${indAnom.reasons.join('; ')}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Sector-Specific Audit Action -->
+        <div class="text-[11px] text-teal-300/90 bg-teal-950/20 border border-teal-500/30 rounded-lg p-2.5">
+          <strong class="text-teal-400 block mb-0.5">Recommended Sector Inquiries:</strong>
+          ${ind.auditFocus}
+        </div>
+      </div>
+    `;
+  }
+
   document.getElementById('drawerDemographics').innerHTML = `
     <div class="flex justify-between items-center"><span class="text-slate-400 text-secondary">Acquisition Officer:</span><span class="font-semibold text-white text-primary">${m.maoName}</span></div>
     <div class="flex justify-between items-center"><span class="text-slate-400 text-secondary">Territory:</span><span class="font-semibold text-white text-primary">${m.isdOsd}</span></div>
@@ -1135,6 +1611,7 @@ function inspectWallet(walletNo) {
   `;
 
   document.getElementById('merchantDrawer').classList.remove('hidden');
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function exportData(type) {
@@ -1143,7 +1620,7 @@ function exportData(type) {
   let filename = 'Audit_Master_Client_Dataset';
 
   if (type === 'flagged') {
-    exportList = baseList.filter(m => m.riskScore >= 30 || m.flags.burstReactivation || m.flags.singleCustomerRisk || m.flags.growthSpike);
+    exportList = baseList.filter(m => m.riskScore >= 30 || m.flags.burstReactivation || m.flags.singleCustomerRisk || m.flags.growthSpike || (m.industryAnomaly && m.industryAnomaly.isAnomaly));
     filename = 'Audit_Flagged_Suspicious_Merchants';
   } else if (type === 'dormant') {
     exportList = baseList.filter(m => m.dormantMonths >= 4 || m.auditFlag.includes('Review'));
@@ -1151,16 +1628,17 @@ function exportData(type) {
   }
 
   const headers = [
-    'Wallet No', 'Merchant Name', 'Sub Pillar', 'District', 'Acquisition Officer',
+    'Wallet No', 'Merchant Name', 'Industry Sector', 'Sub Pillar', 'District', 'Acquisition Officer',
     'Registration Date', 'Onboard Month', 'Tenure Months', 'Pre-Onboarding Months',
     'Rate', 'August PA', 'August PC', 'August CC', 'Avg Ticket Size',
     'MoM Growth', 'Post-Onboard Dormant Months', 'Naive Jan-Aug Dormant', 'Risk Score', 'Audit Flag',
-    'Single Cust Risk', 'Burst Reactivation', 'Growth Spike', 'Total PA (8 Mos)'
+    'Sector Anomaly Flag', 'Sector Anomaly Reasons', 'Single Cust Risk', 'Burst Reactivation', 'Growth Spike', 'Total PA (8 Mos)'
   ];
 
   const rows = exportList.map(m => [
     `"${m.walletNo}"`,
     `"${(m.merchantName || '').replace(/"/g, '""')}"`,
+    `"${m.industry?.name || 'General Retail'}"`,
     `"${m.subPillar}"`,
     `"${m.district}"`,
     `"${m.maoName}"`,
@@ -1178,6 +1656,8 @@ function exportData(type) {
     m.naiveDormantMonths || m.dormantMonths,
     m.riskScore,
     `"${m.auditFlag}"`,
+    m.industryAnomaly?.isAnomaly ? 'YES' : 'NO',
+    `"${(m.industryAnomaly?.reasons || []).join('; ').replace(/"/g, '""')}"`,
     m.flags.singleCustomerRisk ? 'YES' : 'NO',
     m.flags.burstReactivation ? 'YES' : 'NO',
     m.flags.growthSpike ? 'YES' : 'NO',
@@ -1227,10 +1707,14 @@ function setupEventListeners() {
     });
   }
 
+  const indFilterElem = document.getElementById('filterIndustry');
+  if (indFilterElem) indFilterElem.addEventListener('change', applyExplorerFilters);
+
   document.getElementById('filterPillar').addEventListener('change', applyExplorerFilters);
   document.getElementById('filterFlag').addEventListener('change', applyExplorerFilters);
   document.getElementById('filterStatus').addEventListener('change', applyExplorerFilters);
   document.getElementById('btnResetFilters').addEventListener('click', () => {
+    if (indFilterElem) indFilterElem.value = 'ALL';
     document.getElementById('filterPillar').value = 'ALL';
     document.getElementById('filterFlag').value = 'ALL';
     document.getElementById('filterStatus').value = 'ALL';

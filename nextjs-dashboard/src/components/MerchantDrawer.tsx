@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { Merchant } from '../types';
-import { formatBDT, formatNumber, formatPercent } from '../lib/auditRules';
-import { X, ShieldAlert, AlertTriangle, UserCheck, Calendar, MapPin, Tag, Percent, ArrowUpRight, CheckSquare } from 'lucide-react';
+import { formatBDT, formatNumber, formatPercent, INDUSTRY_DEFINITIONS } from '../lib/auditRules';
+import { X, ShieldAlert, AlertTriangle, UserCheck, Calendar, MapPin, Tag, Percent, ArrowUpRight, CheckSquare, Building2, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface MerchantDrawerProps {
@@ -171,6 +171,103 @@ export const MerchantDrawer: React.FC<MerchantDrawerProps> = ({ merchant, onClos
               )}
             </div>
           </div>
+
+          {/* Industry Benchmark & Sector Intelligence */}
+          {(() => {
+            const ind = merchant.industry || INDUSTRY_DEFINITIONS.GENERAL_RETAIL;
+            const indAnom = merchant.industryAnomaly;
+            const isSurgeBreach = merchant.growth > ind.typicalGrowthMax && !merchant.isNewGrowth;
+            const isTicketAnomaly = merchant.avgTicketSize > ind.typicalTicketMax || (merchant.avgTicketSize < ind.typicalTicketMin && merchant.augPC >= 10);
+            const isDiversityAnom = indAnom?.diversityStatus === 'CONCENTRATED';
+
+            return (
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Industry Baseline & Sector Intelligence</h3>
+                <div className="bg-slate-800/40 border border-slate-800 rounded-xl p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ind.badgeClass}`}>
+                          {ind.name}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">Matched Pattern</span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 pt-1 leading-relaxed">{ind.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                    <div className="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">MoM Ceiling</span>
+                      <div className="flex items-baseline justify-between">
+                        <span className="font-bold text-white">{merchant.isNewGrowth ? 'New' : formatPercent(merchant.growth)}</span>
+                        <span className="text-[10px] text-slate-400">&le;+{ind.typicalGrowthMax}% max</span>
+                      </div>
+                      <div>
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                          merchant.isNewGrowth ? 'bg-slate-800 text-slate-300' :
+                          isSurgeBreach ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                          'bg-emerald-500/20 text-emerald-300'
+                        }`}>
+                          {merchant.isNewGrowth ? 'Onboarding' : isSurgeBreach ? '⚠️ Surge Breach' : '✅ Compliant'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ticket Range</span>
+                      <div className="flex items-baseline justify-between">
+                        <span className="font-bold text-white">{formatBDT(merchant.avgTicketSize)}</span>
+                        <span className="text-[10px] text-slate-400">{formatNumber(ind.typicalTicketMin)}-{formatNumber(ind.typicalTicketMax)}</span>
+                      </div>
+                      <div>
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                          isTicketAnomaly ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300'
+                        }`}>
+                          {isTicketAnomaly ? '⚠️ Out of Range' : '✅ Standard'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 bg-slate-900/60 rounded-lg border border-slate-800 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Diversity</span>
+                      <div className="flex items-baseline justify-between">
+                        <span className="font-bold text-white">{merchant.augPC > 0 ? Math.round((merchant.augCC / merchant.augPC) * 100) : 0}%</span>
+                        <span className="text-[10px] text-slate-400">&ge;{Math.round(ind.expectedDiversityRatio * 100)}% target</span>
+                      </div>
+                      <div>
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                          isDiversityAnom ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300'
+                        }`}>
+                          {isDiversityAnom ? '⚠️ Concentrated' : '✅ Organic'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`p-2.5 bg-slate-900/70 border ${indAnom?.isAnomaly ? 'border-amber-500/30 bg-amber-950/10' : 'border-slate-800'} rounded-lg text-xs space-y-1`}>
+                    <div className={`font-bold ${indAnom?.isAnomaly ? 'text-amber-400' : 'text-slate-300'} flex items-center space-x-1.5`}>
+                      <Info className="w-3.5 h-3.5" />
+                      <span>Sector Audit Rationale</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      {ind.benchmarkRationale}
+                    </p>
+                    {indAnom?.isAnomaly && (
+                      <div className="mt-1.5 pt-1.5 border-t border-amber-500/20 text-[11px] text-amber-200">
+                        <strong>Triggered Sector Exception:</strong> {indAnom.reasons.join('; ')}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-[11px] text-teal-300/90 bg-teal-950/20 border border-teal-500/30 rounded-lg p-2.5">
+                    <strong className="text-teal-400 block mb-0.5">Recommended Sector Inquiries:</strong>
+                    {ind.auditFocus}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Account Profile & Demographics */}
           <div className="space-y-3">
