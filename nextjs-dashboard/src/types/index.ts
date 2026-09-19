@@ -105,4 +105,29 @@ export interface PortfolioStats {
   };
 }
 
-export type TabType = 'overview' | 'trends' | 'anomalies' | 'suspicious' | 'dormancy' | 'explorer';
+export interface MAOPerformance {
+  name: string;
+  total: number;
+  healthy: number;
+  active: number;
+  amber: number;
+  dormant: number;
+  amlRisk: number;
+  suddenReact: number;
+  highDormancy: number;
+  totalAugPA: number;
+  healthyPct: number;
+  activePct: number;
+  dormantPct: number;
+  amlPct: number;
+  suddenReactPct: number;
+  highDormancyPct: number;
+  score: number;
+  grade: string;
+  gradeLabel: string;
+  gradeBadge: string;
+  auditVerdict: string;
+  rank: number;
+}
+
+export type TabType = 'overview' | 'trends' | 'anomalies' | 'suspicious' | 'dormancy' | 'mao' | 'explorer';

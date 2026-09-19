@@ -1,4 +1,4 @@
-import { Merchant, PortfolioStats } from '../types';
+import { Merchant, PortfolioStats, MAOPerformance } from '../types';
 
 export function calculatePortfolioStats(merchants: Merchant[]): PortfolioStats {
   let activeCount = 0;
@@ -546,3 +546,102 @@ export function enrichMerchantsWithIndustry(list: Merchant[]): void {
     m.industryAnomaly = assessIndustryAnomaly(m, m.industry);
   });
 }
+
+export function calculateMAOComplianceStats(merchantsList: Merchant[]): MAOPerformance[] {
+  const maoMap = new Map<string, {
+    name: string;
+    total: number;
+    healthy: number;
+    active: number;
+    amber: number;
+    dormant: number;
+    amlRisk: number;
+    suddenReact: number;
+    highDormancy: number;
+    totalAugPA: number;
+  }>();
+
+  merchantsList.forEach((m) => {
+    const mao = m.maoName || 'Unassigned';
+    if (!maoMap.has(mao)) {
+      maoMap.set(mao, {
+        name: mao,
+        total: 0,
+        healthy: 0,
+        active: 0,
+        amber: 0,
+        dormant: 0,
+        amlRisk: 0,
+        suddenReact: 0,
+        highDormancy: 0,
+        totalAugPA: 0,
+      });
+    }
+    const stat = maoMap.get(mao)!;
+    stat.total++;
+    stat.totalAugPA += (m.augPA || 0);
+    if (m.auditFlag === 'Healthy/Active') stat.healthy++;
+    if (m.augActive === 'Active') stat.active++;
+    else if (m.augActive === 'Amber') stat.amber++;
+    else stat.dormant++;
+
+    if (m.flags && (m.flags.singleCustomerRisk || m.flags.burstReactivation || m.flags.microTicketRisk)) stat.amlRisk++;
+    if (m.auditFlag === 'Sudden Reactivation - Review') stat.suddenReact++;
+    if (m.auditFlag === 'High Dormancy - Review') stat.highDormancy++;
+  });
+
+  const list: MAOPerformance[] = Array.from(maoMap.values()).map((stat) => {
+    const healthyPct = stat.total > 0 ? (stat.healthy / stat.total) * 100 : 0;
+    const activePct = stat.total > 0 ? (stat.active / stat.total) * 100 : 0;
+    const dormantPct = stat.total > 0 ? (stat.dormant / stat.total) * 100 : 0;
+    const amlPct = stat.total > 0 ? (stat.amlRisk / stat.total) * 100 : 0;
+    const suddenReactPct = stat.total > 0 ? (stat.suddenReact / stat.total) * 100 : 0;
+    const highDormancyPct = stat.total > 0 ? (stat.highDormancy / stat.total) * 100 : 0;
+
+    let score = 50 + (healthyPct * 0.45) + (activePct * 0.15) - (dormantPct * 0.35) - (amlPct * 0.50) - (suddenReactPct * 0.15);
+    score = Math.max(0, Math.min(100, Math.round(score * 10) / 10));
+
+    let grade = 'D';
+    let gradeLabel = 'High Audit Risk';
+    let gradeBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+    let auditVerdict = 'High Dormancy / AML Concentration';
+
+    if (score >= 75) {
+      grade = 'A';
+      gradeLabel = 'Exemplary Compliance';
+      gradeBadge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+      auditVerdict = 'Prime Portfolio Health & High Retention';
+    } else if (score >= 65) {
+      grade = 'B';
+      gradeLabel = 'Stable Portfolio';
+      gradeBadge = 'bg-teal-500/10 text-teal-400 border-teal-500/30';
+      auditVerdict = 'Healthy Retention & Controlled Risk';
+    } else if (score >= 55) {
+      grade = 'C';
+      gradeLabel = 'Needs Monitoring';
+      gradeBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+      auditVerdict = 'Elevated Dormancy / Emerging AML';
+    }
+
+    return {
+      ...stat,
+      healthyPct,
+      activePct,
+      dormantPct,
+      amlPct,
+      suddenReactPct,
+      highDormancyPct,
+      score,
+      grade,
+      gradeLabel,
+      gradeBadge,
+      auditVerdict,
+      rank: 0,
+    };
+  });
+
+  list.sort((a, b) => b.score - a.score);
+  list.forEach((item, idx) => { item.rank = idx + 1; });
+  return list;
+}
+

@@ -253,6 +253,10 @@
           <span>Tenure Dormancy</span>
           <span id="badgeDormant" class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">29</span>
         </button>
+        <button data-tab="mao" class="tab-btn flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium nav-transition text-slate-400 text-secondary hover:text-white hover:bg-slate-800/50">
+          <i data-lucide="award" class="w-3.5 h-3.5"></i>
+          <span>MAO Scorecard</span>
+        </button>
         <button data-tab="explorer" class="tab-btn flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium nav-transition text-slate-400 text-secondary hover:text-white hover:bg-slate-800/50">
           <i data-lucide="users" class="w-3.5 h-3.5"></i>
           <span>Merchant 360</span>
@@ -399,10 +403,12 @@
         <!-- MAO Officer Ranking -->
         <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col">
           <div class="flex items-center justify-between mb-1">
-            <h2 class="text-xs sm:text-sm font-bold text-white text-primary">Officer (MAO) Performance</h2>
-            <span class="text-[11px] text-slate-400 text-secondary">Tap to filter</span>
+            <h2 class="text-xs sm:text-sm font-bold text-white text-primary">Officer (MAO) Compliance Quality</h2>
+            <button onclick="switchTab('mao')" class="text-xs text-teal-400 font-semibold hover:underline flex items-center space-x-1">
+              <span>Full Scorecard &rarr;</span>
+            </button>
           </div>
-          <p class="text-[11px] text-slate-400 text-secondary mb-3">Portfolio turnover and active merchant ratio</p>
+          <p class="text-[11px] text-slate-400 text-secondary mb-3">Portfolio quality score, retention & compliance standing</p>
           <div class="space-y-2.5 max-h-60 overflow-y-auto pr-1" id="maoTrendList">
             <!-- Injected by JS -->
           </div>
@@ -581,6 +587,139 @@
       </div>
     </section>
 
+    <!-- TAB PANEL: MAO COMPLIANCE & QUALITY SCORECARD -->
+    <section id="tab-mao" class="tab-panel hidden space-y-4 sm:space-y-6">
+      
+      <!-- Scorecard Header Card -->
+      <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm space-y-2">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center space-x-2.5">
+            <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <i data-lucide="award" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-sm sm:text-base font-bold text-white text-primary tracking-tight">Acquisition Officer (MAO) Compliance & Quality Scorecard</h2>
+              <p class="text-xs text-slate-400 text-secondary">
+                Objective portfolio health evaluation based on healthy merchant ratio, active retention, dormancy containment & AML safety — independent of raw volume.
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 shrink-0">
+            <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/30" id="maoScorecardSummaryPill">6 Officers Evaluated</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top KPI Performance Highlights -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" id="maoHighlightCards">
+        <!-- Injected dynamically by JS -->
+      </div>
+
+      <!-- Interactive Comparison Chart & Leaderboard Spotlight -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <!-- Comparison Radar/Bar Chart (2 cols on desktop) -->
+        <div class="lg:col-span-2 bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs sm:text-sm font-bold text-white text-primary tracking-tight">Portfolio Quality Pillars Comparison</h3>
+              <p class="text-[11px] text-slate-400 text-secondary">Healthy % • Active % • Dormancy Containment • AML Cleanliness</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="inline-flex items-center space-x-1 text-[11px] text-slate-400">
+                <span class="w-2 h-2 rounded-full bg-teal-400"></span>
+                <span>Quality Index</span>
+              </span>
+            </div>
+          </div>
+          <div class="h-64 sm:h-72 w-full">
+            <canvas id="maoComplianceChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Tier & Criteria Guidance (1 col on desktop) -->
+        <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center space-x-2 mb-2">
+              <i data-lucide="shield-check" class="w-4 h-4 text-teal-400"></i>
+              <h3 class="text-xs sm:text-sm font-bold text-white text-primary">Compliance Audit Criteria</h3>
+            </div>
+            <p class="text-[11px] text-slate-400 text-secondary leading-relaxed mb-3">
+              Standardized scoring weights healthy retention (+45%), active utilization (+15%), penalized for portfolio dormancy (-35%), AML single-customer looping (-50%), and sudden spike reactivations (-15%).
+            </p>
+            <div class="space-y-2 text-xs">
+              <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
+                <span class="font-semibold text-emerald-400">Grade A (&ge;75)</span>
+                <span class="text-[11px] text-emerald-300">Exemplary Compliance</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-between">
+                <span class="font-semibold text-teal-400">Grade B (65–74)</span>
+                <span class="text-[11px] text-teal-300">Stable Portfolio</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                <span class="font-semibold text-amber-400">Grade C (55–64)</span>
+                <span class="text-[11px] text-amber-300">Needs Monitoring</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-between">
+                <span class="font-semibold text-rose-400">Grade D (&lt;55)</span>
+                <span class="text-[11px] text-rose-300">High Audit Risk</span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-2 text-[10px] text-slate-500 text-secondary">
+            *Evaluates all 961 client accounts. Click any officer to filter entire dashboard.
+          </div>
+        </div>
+      </div>
+
+      <!-- Officer Performance Cards Grid -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="users" class="w-4 h-4 text-amber-400"></i>
+            <h3 class="text-xs sm:text-sm font-bold text-white text-primary tracking-tight">Officer Quality Rankings</h3>
+          </div>
+          <span class="text-[11px] text-slate-400 text-secondary">Ranked by Compliance Quality Score</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4" id="maoCardsContainer">
+          <!-- Injected dynamically by JS -->
+        </div>
+      </div>
+
+      <!-- Detailed Officer Compliance Matrix Table -->
+      <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl overflow-hidden shadow-sm">
+        <div class="p-3.5 sm:p-4 border-b border-slate-800/60 border-theme flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="text-xs sm:text-sm font-bold text-white text-primary tracking-tight">Officer Compliance Comparison Matrix</h3>
+            <p class="text-[11px] text-slate-400 text-secondary">Breakdown of account health, retention, dormancy, and risk indicators</p>
+          </div>
+          <span class="text-[11px] text-teal-400 font-semibold" id="maoTableActiveFilterNotice">Showing All Officers</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
+            <thead>
+              <tr class="bg-slate-950/40 table-head border-b border-slate-800/60 text-slate-400 text-secondary uppercase text-[10px] tracking-wider">
+                <th class="p-3 text-center">Rank</th>
+                <th class="p-3">Acquisition Officer (MAO)</th>
+                <th class="p-3 text-center">Compliance Score</th>
+                <th class="p-3 text-center">Grade</th>
+                <th class="p-3 text-center">Healthy Rate</th>
+                <th class="p-3 text-center">Active Rate</th>
+                <th class="p-3 text-center">Dormant Rate</th>
+                <th class="p-3 text-center">AML Risk Rate</th>
+                <th class="p-3 text-center">Sudden React.</th>
+                <th class="p-3 text-right">Accounts</th>
+                <th class="p-3 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="maoComplianceTableBody" class="divide-y divide-slate-800/60 border-theme">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
     <!-- TAB PANEL 6: MERCHANT 360 EXPLORER -->
     <section id="tab-explorer" class="tab-panel hidden space-y-4">
       <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
@@ -667,6 +806,10 @@
     <button data-tab="dormancy" class="bottom-nav-btn flex flex-col items-center py-1 px-2 text-slate-400 text-secondary nav-transition">
       <i data-lucide="clock" class="w-5 h-5"></i>
       <span class="text-[10px] font-medium mt-0.5">Dormant</span>
+    </button>
+    <button data-tab="mao" class="bottom-nav-btn flex flex-col items-center py-1 px-2 text-slate-400 text-secondary nav-transition">
+      <i data-lucide="award" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium mt-0.5">Scorecard</span>
     </button>
     <button data-tab="explorer" class="bottom-nav-btn flex flex-col items-center py-1 px-2 text-slate-400 text-secondary nav-transition">
       <i data-lucide="users" class="w-5 h-5"></i>

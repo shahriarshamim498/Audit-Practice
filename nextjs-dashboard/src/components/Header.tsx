@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { TabType, PortfolioStats } from '../types';
-import { ShieldAlert, TrendingUp, AlertTriangle, UserX, Search, Download, Layers, Activity, Users, Sun, Moon } from 'lucide-react';
+import { ShieldAlert, TrendingUp, AlertTriangle, UserX, Search, Download, Layers, Activity, Users, Sun, Moon, Award } from 'lucide-react';
 
 interface HeaderProps {
   currentTab: TabType;
@@ -37,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'anomalies' as TabType, label: 'Anomaly Radar', icon: AlertTriangle, badge: stats?.flaggedCounts.growthSpike },
     { id: 'suspicious' as TabType, label: 'AML / Suspicious', icon: ShieldAlert, badge: stats ? (stats.flaggedCounts.singleCustomerRisk + stats.flaggedCounts.burstReactivation) : undefined, badgeColor: 'bg-rose-500' },
     { id: 'dormancy' as TabType, label: 'Dormancy Matrix', icon: UserX, badge: stats?.flaggedCounts.suddenReactivation, badgeColor: 'bg-amber-500' },
+    { id: 'mao' as TabType, label: 'MAO Scorecard', icon: Award },
     { id: 'explorer' as TabType, label: 'Merchant 360', icon: Activity },
   ];
 

@@ -487,6 +487,7 @@ let macroTrendChartInst = null;
 let districtTrendChartInst = null;
 let dormancyHistogramChartInst = null;
 let drawerChartInst = null;
+let maoComplianceChartInst = null;
 
 let currentTheme = localStorage.getItem('audit_theme') || 'dark';
 
@@ -626,6 +627,7 @@ function refreshAllDashboardViews() {
   renderAnomalyView();
   renderSuspiciousView();
   renderDormancyView();
+  renderMAOScorecardView();
   applyExplorerFilters();
   if (window.lucide) window.lucide.createIcons();
 }
@@ -658,6 +660,7 @@ function switchTab(tabId) {
   if (tabId === 'trends') renderTrendsView();
   if (tabId === 'dormancy') renderDormancyView();
   if (tabId === 'overview') renderOverviewCharts();
+  if (tabId === 'mao') renderMAOScorecardView();
   if (window.lucide) window.lucide.createIcons();
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -998,37 +1001,32 @@ function renderTrendsView() {
     }
   });
 
-  // MAO breakdown
-  const maoMap = new Map();
-  merchants.forEach(m => {
-    const mao = m.maoName || 'Unassigned';
-    const curr = maoMap.get(mao) || { pa: 0, count: 0, active: 0 };
-    curr.pa += m.augPA;
-    curr.count++;
-    if (m.augActive === 'Active') curr.active++;
-    maoMap.set(mao, curr);
-  });
-  const maoList = Array.from(maoMap.entries()).sort((a, b) => b[1].pa - a[1].pa);
-
-  const maoHtml = maoList.map(([mao, data]) => {
-    const isSelected = selectedGlobalMAO === mao;
+  // MAO breakdown with Compliance Intelligence
+  const maoStats = calculateMAOComplianceStats(merchants);
+  const maoHtml = maoStats.map(o => {
+    const isSelected = selectedGlobalMAO === o.name;
     return `
-      <div onclick="selectMAOFromList('${mao}')" class="p-3 ${isSelected ? 'bg-teal-950/40 border-teal-500/60' : 'bg-slate-800/40 border-slate-800'} border rounded-lg flex items-center justify-between text-xs cursor-pointer hover:border-teal-500/40 transition-all">
-        <div>
+      <div onclick="selectMAOFromList('${o.name}')" class="p-3 ${isSelected ? 'bg-teal-950/40 border-teal-500/60' : 'bg-slate-800/40 border-slate-800'} border rounded-xl flex items-center justify-between text-xs cursor-pointer hover:border-teal-500/40 transition-all">
+        <div class="space-y-0.5">
           <div class="font-semibold ${isSelected ? 'text-teal-300' : 'text-white'} flex items-center space-x-1.5">
-            <span>${mao}</span>
+            <span class="text-amber-400 font-bold">#${o.rank}</span>
+            <span>${o.name}</span>
             ${isSelected ? '<span class="text-[10px] px-1 bg-teal-500/20 rounded text-teal-300">Filtered</span>' : ''}
           </div>
-          <div class="text-[11px] text-slate-400">${data.count} accounts managed</div>
+          <div class="text-[11px] text-slate-400">${o.total} accounts • Aug: ${formatBDT(o.totalAugPA)}</div>
         </div>
-        <div class="text-right">
-          <div class="font-bold text-teal-400">${formatBDT(data.pa)}</div>
-          <div class="text-[11px] text-emerald-400">${Math.round((data.active / data.count) * 100)}% active rate</div>
+        <div class="text-right space-y-0.5">
+          <div class="flex items-center justify-end space-x-1.5">
+            <span class="font-extrabold ${o.score >= 75 ? 'text-emerald-400' : o.score >= 65 ? 'text-teal-400' : 'text-amber-400'}">${o.score}</span>
+            <span class="px-1.5 py-0.2 rounded text-[10px] font-bold border ${o.gradeBadge}">Grade ${o.grade}</span>
+          </div>
+          <div class="text-[10px] text-emerald-400">${o.healthyPct.toFixed(0)}% healthy • ${o.dormantPct.toFixed(0)}% dormant</div>
         </div>
       </div>
     `;
   }).join('');
-  document.getElementById('maoTrendList').innerHTML = maoHtml;
+  const maoContainer = document.getElementById('maoTrendList');
+  if (maoContainer) maoContainer.innerHTML = maoHtml;
 }
 
 function selectMAOFromList(mao) {
@@ -1428,6 +1426,354 @@ function renderDormancyView() {
     </tr>
   `).join('');
   document.getElementById('dormancyTableBody').innerHTML = dormantTableHtml;
+}
+
+function calculateMAOComplianceStats(merchantsList = merchants) {
+  const maoMap = new Map();
+  merchantsList.forEach(m => {
+    const mao = m.maoName || 'Unassigned';
+    if (!maoMap.has(mao)) {
+      maoMap.set(mao, {
+        name: mao,
+        total: 0,
+        healthy: 0,
+        active: 0,
+        amber: 0,
+        dormant: 0,
+        amlRisk: 0,
+        suddenReact: 0,
+        highDormancy: 0,
+        totalAugPA: 0,
+        merchants: []
+      });
+    }
+    const stat = maoMap.get(mao);
+    stat.total++;
+    stat.merchants.push(m);
+    stat.totalAugPA += (m.augPA || 0);
+    if (m.auditFlag === 'Healthy/Active') stat.healthy++;
+    if (m.augActive === 'Active') stat.active++;
+    else if (m.augActive === 'Amber') stat.amber++;
+    else stat.dormant++;
+
+    if (m.flags && (m.flags.singleCustomerRisk || m.flags.burstReactivation || m.flags.microTicketRisk)) stat.amlRisk++;
+    if (m.auditFlag === 'Sudden Reactivation - Review') stat.suddenReact++;
+    if (m.auditFlag === 'High Dormancy - Review') stat.highDormancy++;
+  });
+
+  const list = Array.from(maoMap.values()).map(stat => {
+    const healthyPct = stat.total > 0 ? (stat.healthy / stat.total) * 100 : 0;
+    const activePct = stat.total > 0 ? (stat.active / stat.total) * 100 : 0;
+    const dormantPct = stat.total > 0 ? (stat.dormant / stat.total) * 100 : 0;
+    const amlPct = stat.total > 0 ? (stat.amlRisk / stat.total) * 100 : 0;
+    const suddenReactPct = stat.total > 0 ? (stat.suddenReact / stat.total) * 100 : 0;
+    const highDormancyPct = stat.total > 0 ? (stat.highDormancy / stat.total) * 100 : 0;
+
+    // Standardized Portfolio Quality & Compliance Score (0 to 100)
+    let score = 50 + (healthyPct * 0.45) + (activePct * 0.15) - (dormantPct * 0.35) - (amlPct * 0.50) - (suddenReactPct * 0.15);
+    score = Math.max(0, Math.min(100, Math.round(score * 10) / 10));
+
+    let grade = 'D';
+    let gradeLabel = 'High Audit Risk';
+    let gradeBadge = 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+    let auditVerdict = 'High Dormancy / AML Concentration';
+
+    if (score >= 75) {
+      grade = 'A';
+      gradeLabel = 'Exemplary Compliance';
+      gradeBadge = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+      auditVerdict = 'Prime Portfolio Health & High Retention';
+    } else if (score >= 65) {
+      grade = 'B';
+      gradeLabel = 'Stable Portfolio';
+      gradeBadge = 'bg-teal-500/10 text-teal-400 border-teal-500/30';
+      auditVerdict = 'Healthy Retention & Controlled Risk';
+    } else if (score >= 55) {
+      grade = 'C';
+      gradeLabel = 'Needs Monitoring';
+      gradeBadge = 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+      auditVerdict = 'Elevated Dormancy / Emerging AML';
+    }
+
+    return {
+      ...stat,
+      healthyPct,
+      activePct,
+      dormantPct,
+      amlPct,
+      suddenReactPct,
+      highDormancyPct,
+      score,
+      grade,
+      gradeLabel,
+      gradeBadge,
+      auditVerdict
+    };
+  });
+
+  list.sort((a, b) => b.score - a.score);
+  list.forEach((item, idx) => { item.rank = idx + 1; });
+  return list;
+}
+
+function renderMAOScorecardView() {
+  const maoStats = calculateMAOComplianceStats(merchants);
+  if (!maoStats || !maoStats.length) return;
+
+  const topOfficer = maoStats[0];
+  const lowestDormant = [...maoStats].sort((a, b) => a.dormantPct - b.dormantPct)[0];
+  const lowestAML = [...maoStats].sort((a, b) => a.amlPct - b.amlPct)[0];
+  const avgScore = (maoStats.reduce((sum, o) => sum + o.score, 0) / maoStats.length).toFixed(1);
+
+  // 1. Render Highlight Badges
+  const highlightElem = document.getElementById('maoHighlightCards');
+  if (highlightElem) {
+    highlightElem.innerHTML = `
+      <div class="p-4 rounded-xl border bg-emerald-950/20 border-emerald-500/40 shadow-sm space-y-1">
+        <div class="flex items-center justify-between text-xs font-semibold text-emerald-400">
+          <span>Top Compliance Officer</span>
+          <i data-lucide="crown" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <div class="text-lg font-bold text-white truncate" title="${topOfficer.name}">${topOfficer.name}</div>
+        <div class="flex items-center space-x-2 text-xs">
+          <span class="px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Score: ${topOfficer.score}</span>
+          <span class="text-slate-400">${topOfficer.healthyPct.toFixed(1)}% Healthy</span>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-xl border bg-teal-950/20 border-teal-500/40 shadow-sm space-y-1">
+        <div class="flex items-center justify-between text-xs font-semibold text-teal-400">
+          <span>Lowest Dormancy Rate</span>
+          <i data-lucide="clock" class="w-4 h-4 text-teal-400"></i>
+        </div>
+        <div class="text-lg font-bold text-white truncate" title="${lowestDormant.name}">${lowestDormant.name}</div>
+        <div class="flex items-center space-x-2 text-xs">
+          <span class="px-2 py-0.5 rounded-full font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40">${lowestDormant.dormantPct.toFixed(1)}% Dormant</span>
+          <span class="text-slate-400">${lowestDormant.dormant} of ${lowestDormant.total} accts</span>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-xl border bg-cyan-950/20 border-cyan-500/40 shadow-sm space-y-1">
+        <div class="flex items-center justify-between text-xs font-semibold text-cyan-400">
+          <span>Cleanest AML Record</span>
+          <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400"></i>
+        </div>
+        <div class="text-lg font-bold text-white truncate" title="${lowestAML.name}">${lowestAML.name}</div>
+        <div class="flex items-center space-x-2 text-xs">
+          <span class="px-2 py-0.5 rounded-full font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">${lowestAML.amlPct.toFixed(1)}% AML Risk</span>
+          <span class="text-slate-400">${lowestAML.amlRisk} flagged</span>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-xl border bg-indigo-950/20 border-indigo-500/40 shadow-sm space-y-1">
+        <div class="flex items-center justify-between text-xs font-semibold text-indigo-400">
+          <span>Portfolio Quality Avg</span>
+          <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-white">${avgScore} / 100</div>
+        <div class="text-xs text-slate-400">Across ${maoStats.length} field officers</div>
+      </div>
+    `;
+  }
+
+  // 2. Render Officer Cards Grid
+  const cardsElem = document.getElementById('maoCardsContainer');
+  if (cardsElem) {
+    cardsElem.innerHTML = maoStats.map(o => {
+      const isSelected = selectedGlobalMAO === o.name;
+      const medalIcon = o.rank === 1 ? '🥇' : o.rank === 2 ? '🥈' : o.rank === 3 ? '🥉' : `#${o.rank}`;
+
+      return `
+        <div class="bg-slate-900/90 surface-card border ${isSelected ? 'border-teal-500 ring-1 ring-teal-500/50 shadow-md' : 'border-slate-800/80'} rounded-2xl p-4 sm:p-5 space-y-3.5 transition-all">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-2.5">
+              <span class="text-lg font-bold ${o.rank <= 3 ? 'text-amber-400' : 'text-slate-400'}">${medalIcon}</span>
+              <div>
+                <h4 class="text-sm font-bold text-white text-primary leading-tight">${o.name}</h4>
+                <p class="text-[11px] text-slate-400 text-secondary">${o.total} merchants managed</p>
+              </div>
+            </div>
+            <div class="flex flex-col items-end">
+              <span class="text-lg font-extrabold ${o.score >= 75 ? 'text-emerald-400' : o.score >= 65 ? 'text-teal-400' : o.score >= 55 ? 'text-amber-400' : 'text-rose-400'}">${o.score}</span>
+              <span class="px-2 py-0.2 rounded text-[10px] font-bold border ${o.gradeBadge}">Grade ${o.grade}</span>
+            </div>
+          </div>
+
+          <!-- Progress Ratios -->
+          <div class="space-y-2 text-xs">
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-emerald-400 font-medium">Healthy Portfolio</span>
+                <span class="text-slate-300 font-bold">${o.healthyPct.toFixed(1)}% (${o.healthy} accts)</span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${o.healthyPct}%"></div>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-teal-400 font-medium">Active Retention</span>
+                <span class="text-slate-300 font-bold">${o.activePct.toFixed(1)}% (${o.active} accts)</span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-teal-500 h-1.5 rounded-full" style="width: ${o.activePct}%"></div>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-amber-400 font-medium">Dormancy Rate</span>
+                <span class="text-slate-300 font-bold">${o.dormantPct.toFixed(1)}% (${o.dormant} accts)</span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-amber-500 h-1.5 rounded-full" style="width: ${o.dormantPct}%"></div>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex justify-between text-[11px]">
+                <span class="text-rose-400 font-medium">AML / Suspicious Risk</span>
+                <span class="text-slate-300 font-bold">${o.amlPct.toFixed(1)}% (${o.amlRisk} accts)</span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-rose-500 h-1.5 rounded-full" style="width: ${Math.min(100, o.amlPct * 5)}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800/60 border-theme flex items-center justify-between">
+            <span class="text-[11px] text-slate-400 truncate max-w-[170px]" title="${o.auditVerdict}">
+              ${o.auditVerdict}
+            </span>
+            <button onclick="selectMAOFromList('${o.name}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 ${
+              isSelected ? 'bg-teal-500 text-slate-900' : 'bg-slate-800 surface-subtle text-teal-400 hover:bg-slate-700'
+            }">
+              <span>${isSelected ? 'Active Filter' : 'Filter MAO'}</span>
+              <i data-lucide="${isSelected ? 'check' : 'filter'}" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 3. Render Matrix Table
+  const tableElem = document.getElementById('maoComplianceTableBody');
+  if (tableElem) {
+    tableElem.innerHTML = maoStats.map(o => {
+      const isSelected = selectedGlobalMAO === o.name;
+      return `
+        <tr class="hover:bg-slate-800/40 transition-colors ${isSelected ? 'bg-teal-950/20' : ''}">
+          <td class="p-3 text-center font-bold ${o.rank <= 3 ? 'text-amber-400' : 'text-slate-400'}">
+            #${o.rank}
+          </td>
+          <td class="p-3">
+            <div class="font-bold text-white text-primary flex items-center space-x-2">
+              <span>${o.name}</span>
+              ${isSelected ? '<span class="px-1.5 py-0.2 text-[10px] font-bold rounded bg-teal-500/20 text-teal-300 border border-teal-500/30">Filtered</span>' : ''}
+            </div>
+            <div class="text-[10px] text-slate-400">${o.total} total merchants managed</div>
+          </td>
+          <td class="p-3 text-center">
+            <span class="text-sm font-extrabold ${o.score >= 75 ? 'text-emerald-400' : o.score >= 65 ? 'text-teal-400' : o.score >= 55 ? 'text-amber-400' : 'text-rose-400'}">
+              ${o.score}
+            </span>
+          </td>
+          <td class="p-3 text-center">
+            <span class="px-2 py-0.5 rounded font-bold text-[10px] border ${o.gradeBadge}">
+              Grade ${o.grade}
+            </span>
+          </td>
+          <td class="p-3 text-center">
+            <span class="font-bold text-emerald-400">${o.healthyPct.toFixed(1)}%</span>
+            <div class="text-[10px] text-slate-400">${o.healthy} accts</div>
+          </td>
+          <td class="p-3 text-center">
+            <span class="font-bold text-teal-300">${o.activePct.toFixed(1)}%</span>
+            <div class="text-[10px] text-slate-400">${o.active} accts</div>
+          </td>
+          <td class="p-3 text-center">
+            <span class="font-bold ${o.dormantPct > 30 ? 'text-rose-400' : 'text-amber-400'}">${o.dormantPct.toFixed(1)}%</span>
+            <div class="text-[10px] text-slate-400">${o.dormant} accts</div>
+          </td>
+          <td class="p-3 text-center">
+            <span class="font-bold ${o.amlPct > 1 ? 'text-rose-400' : 'text-emerald-400'}">${o.amlPct.toFixed(1)}%</span>
+            <div class="text-[10px] text-slate-400">${o.amlRisk} flagged</div>
+          </td>
+          <td class="p-3 text-center">
+            <span class="font-bold text-slate-300">${o.suddenReactPct.toFixed(1)}%</span>
+            <div class="text-[10px] text-slate-400">${o.suddenReact} accts</div>
+          </td>
+          <td class="p-3 text-right font-medium text-slate-300">${o.total}</td>
+          <td class="p-3 text-center">
+            <button onclick="selectMAOFromList('${o.name}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold ${
+              isSelected ? 'bg-teal-500 text-slate-900' : 'bg-slate-800 surface-subtle text-teal-400 hover:bg-slate-700'
+            }">
+              ${isSelected ? 'Clear Filter' : 'Filter Dashboard'}
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // 4. Render Comparison Chart
+  const chartCanvas = document.getElementById('maoComplianceChart');
+  if (chartCanvas) {
+    const ctx = chartCanvas.getContext('2d');
+    if (maoComplianceChartInst) maoComplianceChartInst.destroy();
+
+    const colors = getChartColors();
+    maoComplianceChartInst = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: maoStats.map(o => o.name.split(' ')[0] + ' ' + (o.name.split(' ')[1] || '')),
+        datasets: [
+          {
+            label: 'Healthy Ratio (%)',
+            data: maoStats.map(o => o.healthyPct),
+            backgroundColor: '#10b981',
+            borderRadius: 4
+          },
+          {
+            label: 'Active Retention (%)',
+            data: maoStats.map(o => o.activePct),
+            backgroundColor: '#14b8a6',
+            borderRadius: 4
+          },
+          {
+            label: 'Dormancy Containment (%)',
+            data: maoStats.map(o => Math.max(0, 100 - o.dormantPct)),
+            backgroundColor: '#3b82f6',
+            borderRadius: 4
+          },
+          {
+            label: 'AML Safety (%)',
+            data: maoStats.map(o => Math.max(0, 100 - (o.amlPct * 10))),
+            backgroundColor: '#8b5cf6',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: colors.tick, boxWidth: 10, font: { size: 10 } }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: colors.tick, font: { size: 10 } } },
+          y: { min: 0, max: 100, grid: { color: colors.grid }, ticks: { color: colors.tick, callback: v => `${v}%` } }
+        }
+      }
+    });
+  }
+
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function initExplorerFilters() {
