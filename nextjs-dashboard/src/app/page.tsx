@@ -151,14 +151,6 @@ export default function DashboardPage() {
           />
         )}
 
-        {currentTab === 'mao' && (
-          <MAOScorecardTab
-            merchants={merchants}
-            selectedMAO={selectedMAO}
-            onSelectMAO={setSelectedMAO}
-          />
-        )}
-
         {currentTab === 'explorer' && (
           <MerchantTable
             merchants={activeMerchants}
@@ -207,13 +199,6 @@ export default function DashboardPage() {
         >
           <Clock className="w-5 h-5" />
           <span className="text-[10px] font-medium mt-0.5">Dormant</span>
-        </button>
-        <button
-          onClick={() => setCurrentTab('mao')}
-          className={`flex flex-col items-center py-1 px-2 ${currentTab === 'mao' ? 'text-teal-400' : 'text-slate-400'}`}
-        >
-          <Award className="w-5 h-5" />
-          <span className="text-[10px] font-medium mt-0.5">Scorecard</span>
         </button>
         <button
           onClick={() => setCurrentTab('explorer')}

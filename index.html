@@ -253,10 +253,6 @@
           <span>Tenure Dormancy</span>
           <span id="badgeDormant" class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">29</span>
         </button>
-        <button data-tab="mao" class="tab-btn flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium nav-transition text-slate-400 text-secondary hover:text-white hover:bg-slate-800/50">
-          <i data-lucide="award" class="w-3.5 h-3.5"></i>
-          <span>MAO Scorecard</span>
-        </button>
         <button data-tab="explorer" class="tab-btn flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium nav-transition text-slate-400 text-secondary hover:text-white hover:bg-slate-800/50">
           <i data-lucide="users" class="w-3.5 h-3.5"></i>
           <span>Merchant 360</span>
@@ -403,12 +399,10 @@
         <!-- MAO Officer Ranking -->
         <div class="bg-slate-900/90 surface-card border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col">
           <div class="flex items-center justify-between mb-1">
-            <h2 class="text-xs sm:text-sm font-bold text-white text-primary">Officer (MAO) Compliance Quality</h2>
-            <button onclick="switchTab('mao')" class="text-xs text-teal-400 font-semibold hover:underline flex items-center space-x-1">
-              <span>Full Scorecard &rarr;</span>
-            </button>
+            <h2 class="text-xs sm:text-sm font-bold text-white text-primary">Officer (MAO) Performance</h2>
+            <span class="text-[11px] text-slate-400 text-secondary">Tap to filter</span>
           </div>
-          <p class="text-[11px] text-slate-400 text-secondary mb-3">Portfolio quality score, retention & compliance standing</p>
+          <p class="text-[11px] text-slate-400 text-secondary mb-3">Portfolio turnover and active merchant ratio</p>
           <div class="space-y-2.5 max-h-60 overflow-y-auto pr-1" id="maoTrendList">
             <!-- Injected by JS -->
           </div>
@@ -806,10 +800,6 @@
     <button data-tab="dormancy" class="bottom-nav-btn flex flex-col items-center py-1 px-2 text-slate-400 text-secondary nav-transition">
       <i data-lucide="clock" class="w-5 h-5"></i>
       <span class="text-[10px] font-medium mt-0.5">Dormant</span>
-    </button>
-    <button data-tab="mao" class="bottom-nav-btn flex flex-col items-center py-1 px-2 text-slate-400 text-secondary nav-transition">
-      <i data-lucide="award" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium mt-0.5">Scorecard</span>
     </button>
     <button data-tab="explorer" class="bottom-nav-btn flex flex-col items-center py-1 px-2 text-slate-400 text-secondary nav-transition">
       <i data-lucide="users" class="w-5 h-5"></i>

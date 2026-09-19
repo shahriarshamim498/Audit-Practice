@@ -1001,26 +1001,32 @@ function renderTrendsView() {
     }
   });
 
-  // MAO breakdown with Compliance Intelligence
-  const maoStats = calculateMAOComplianceStats(merchants);
-  const maoHtml = maoStats.map(o => {
-    const isSelected = selectedGlobalMAO === o.name;
+  // MAO breakdown
+  const maoMap = new Map();
+  merchants.forEach(m => {
+    const mao = m.maoName || 'Unassigned';
+    const curr = maoMap.get(mao) || { pa: 0, count: 0, active: 0 };
+    curr.pa += m.augPA;
+    curr.count++;
+    if (m.augActive === 'Active') curr.active++;
+    maoMap.set(mao, curr);
+  });
+  const maoList = Array.from(maoMap.entries()).sort((a, b) => b[1].pa - a[1].pa);
+
+  const maoHtml = maoList.map(([mao, data]) => {
+    const isSelected = selectedGlobalMAO === mao;
     return `
-      <div onclick="selectMAOFromList('${o.name}')" class="p-3 ${isSelected ? 'bg-teal-950/40 border-teal-500/60' : 'bg-slate-800/40 border-slate-800'} border rounded-xl flex items-center justify-between text-xs cursor-pointer hover:border-teal-500/40 transition-all">
-        <div class="space-y-0.5">
+      <div onclick="selectMAOFromList('${mao}')" class="p-3 ${isSelected ? 'bg-teal-950/40 border-teal-500/60' : 'bg-slate-800/40 border-slate-800'} border rounded-lg flex items-center justify-between text-xs cursor-pointer hover:border-teal-500/40 transition-all">
+        <div>
           <div class="font-semibold ${isSelected ? 'text-teal-300' : 'text-white'} flex items-center space-x-1.5">
-            <span class="text-amber-400 font-bold">#${o.rank}</span>
-            <span>${o.name}</span>
+            <span>${mao}</span>
             ${isSelected ? '<span class="text-[10px] px-1 bg-teal-500/20 rounded text-teal-300">Filtered</span>' : ''}
           </div>
-          <div class="text-[11px] text-slate-400">${o.total} accounts • Aug: ${formatBDT(o.totalAugPA)}</div>
+          <div class="text-[11px] text-slate-400">${data.count} accounts managed</div>
         </div>
-        <div class="text-right space-y-0.5">
-          <div class="flex items-center justify-end space-x-1.5">
-            <span class="font-extrabold ${o.score >= 75 ? 'text-emerald-400' : o.score >= 65 ? 'text-teal-400' : 'text-amber-400'}">${o.score}</span>
-            <span class="px-1.5 py-0.2 rounded text-[10px] font-bold border ${o.gradeBadge}">Grade ${o.grade}</span>
-          </div>
-          <div class="text-[10px] text-emerald-400">${o.healthyPct.toFixed(0)}% healthy • ${o.dormantPct.toFixed(0)}% dormant</div>
+        <div class="text-right">
+          <div class="font-bold text-teal-400">${formatBDT(data.pa)}</div>
+          <div class="text-[11px] text-emerald-400">${Math.round((data.active / data.count) * 100)}% active rate</div>
         </div>
       </div>
     `;
